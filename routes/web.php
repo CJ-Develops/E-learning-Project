@@ -74,6 +74,32 @@ Route::middleware(['auth', 'teacher'])->prefix('teacher')->group(function () {
     // Delete
     Route::delete('/courses/{course}', [CourseController::class, 'destroy'])->name('teacher.courses.destroy');
 
+    // Edit & Update Assignment
+    Route::get('/assignments/{assignment}/edit', [AssignmentController::class, 'edit'])->name('teacher.assignments.edit');
+    Route::put('/assignments/{assignment}', [AssignmentController::class, 'update'])->name('teacher.assignments.update');
+
+    // Edit & Update Lesson
+    Route::get('/lessons/{lesson}/edit', [LessonController::class, 'edit'])->name('teacher.lessons.edit');
+    Route::put('/lessons/{lesson}', [LessonController::class, 'update'])->name('teacher.lessons.update');
+    
+    // Delete Lesson
+    Route::delete('/lessons/{lesson}', [LessonController::class, 'destroy'])->name('teacher.lessons.destroy');
+
+});
+    // 6. Admin Routes
+Route::middleware(['auth', 'verified'])->prefix('admin')->group(function () {
+    
+    // Dashboard
+    Route::get('/dashboard', [App\Http\Controllers\AdminController::class, 'dashboard'])->name('admin.dashboard');
+
+    // User Management
+    Route::get('/users', [App\Http\Controllers\AdminController::class, 'users'])->name('admin.users');
+    Route::get('/users/create', [App\Http\Controllers\AdminController::class, 'createUser'])->name('admin.users.create');
+    Route::post('/users', [App\Http\Controllers\AdminController::class, 'storeUser'])->name('admin.users.store');
+    Route::delete('/users/{user}', [App\Http\Controllers\AdminController::class, 'destroyUser'])->name('admin.users.destroy');
+
+    Route::get('/users/{user}/edit', [App\Http\Controllers\AdminController::class, 'editUser'])->name('admin.users.edit');
+    Route::put('/users/{user}', [App\Http\Controllers\AdminController::class, 'updateUser'])->name('admin.users.update');
 
 });
 
