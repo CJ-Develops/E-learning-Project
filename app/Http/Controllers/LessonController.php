@@ -20,20 +20,51 @@ class LessonController extends Controller
     }
 
     // 2. Store a new lesson
-    public function store(Request $request, Course $course)
+   public function store(Request $request, Course $course)
     {
         $request->validate([
-            'title' => 'required',
-            'video_url' => 'nullable|url', // Basic URL validation
+            'title' => 'required|string|max:255',
+            'content' => 'nullable|string',
+            'video_url' => 'nullable|url', // ✅ Validate URL
         ]);
 
         $course->lessons()->create([
             'title' => $request->title,
-            'video_url' => $request->video_url,
             'content' => $request->content,
-            'position' => $course->lessons()->count() + 1, // Add to end of list
+            'video_url' => $request->video_url, // ✅ Save URL
         ]);
 
-        return back()->with('success', 'Lesson added successfully!');
+        return redirect()->back()->with('success', 'Lesson added successfully!');
+    }
+
+    // 3. SHOW EDIT FORM
+    public function edit(\App\Models\Lesson $lesson)
+    {
+        return view('teacher.lessons.edit', compact('lesson'));
+    }
+
+    // 4. UPDATE LESSON
+    public function update(\Illuminate\Http\Request $request, \App\Models\Lesson $lesson)
+    {
+        $request->validate([
+            'title'     => 'required|string|max:255',
+            'content'   => 'nullable|string', 
+            'video_url' => 'nullable|url', // ✅ Now we allow updating the URL
+        ]);
+
+        $lesson->update($request->all());
+
+        return redirect()->route('teacher.lessons.index', $lesson->course_id)
+                         ->with('success', 'Lesson updated successfully!');
+    }
+
+    // 5. DELETE LESSON
+    public function destroy(\App\Models\Lesson $lesson)
+    {
+        $courseId = $lesson->course_id; // Save ID before deleting to redirect back
+        $lesson->delete();
+        
+        return redirect()->route('teacher.lessons.index', $courseId)
+                         ->with('success', 'Lesson deleted successfully!');
     }
 }

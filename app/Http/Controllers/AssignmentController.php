@@ -29,19 +29,21 @@ class AssignmentController extends Controller
     }
 
     // 3. View Submissions for an Assignment
-    public function submissions(Assignment $assignment)
+    // VIEW SUBMISSIONS (Grading Page)
+    public function submissions(\App\Models\Assignment $assignment)
     {
-        // Load the assignment with its submissions and the students who submitted
-        $assignment->load('submissions.user'); 
-        
-        return view('teacher.assignments.submissions', compact('assignment'));
+        // Fetch all submissions for this assignment, including the student's name (user)
+        $submissions = $assignment->submissions()->with('user')->get();
+
+        return view('teacher.assignments.submissions', compact('assignment', 'submissions'));
     }
 
     // 4. Save a Grade
     public function grade(Request $request, \App\Models\Submission $submission)
     {
         $request->validate([
-            'grade' => 'required|integer|min:0|max:100'
+            // 👇 THIS LINE ENSURES THE GRADE IS BETWEEN 0 AND 100
+            'grade' => 'required|integer|min:0|max:100',
         ]);
 
         $submission->update(['grade' => $request->grade]);
@@ -59,5 +61,28 @@ class AssignmentController extends Controller
     {
         $assignment->delete();
         return back()->with('success', 'Assignment deleted successfully!');
+    }
+
+    // 7. SHOW EDIT FORM
+    public function edit(Assignment $assignment)
+    {
+        return view('teacher.assignments.edit', compact('assignment'));
+    }
+
+    // 8. UPDATE ASSIGNMENT
+    public function update(Request $request, Assignment $assignment)
+    {
+        $request->validate([
+            'title' => 'required|string|max:255',
+            'description' => 'required|string',
+            'due_date' => 'required|date',
+            'points' => 'required|integer|min:0',
+        ]);
+
+        $assignment->update($request->all());
+
+        // Redirect back to the Assignment List for the course
+        return redirect()->route('teacher.assignments.index', $assignment->course_id)
+                         ->with('success', 'Assignment updated successfully!');
     }
 }

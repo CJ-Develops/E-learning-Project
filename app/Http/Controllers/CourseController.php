@@ -12,13 +12,33 @@ class CourseController extends Controller
     // ==========================================
 
     // 1. Show the list of courses (Teacher Dashboard)
+    // 1. TEACHER DASHBOARD (My Courses + Stats)
     public function index()
     {
-        // Fetch only courses created by the currently logged-in teacher
-        $courses = \App\Models\Course::where('instructor_id', auth()->id())->get();
+        $teacherId = auth()->id();
 
-        // Return the TEACHER view
-        return view('teacher.courses.index', compact('courses'));
+        // A. Fetch Teacher's Courses with Counts
+        $courses = \App\Models\Course::where('instructor_id', $teacherId)
+            ->withCount(['lessons', 'assignments'])
+            ->get();
+
+        // B. Calculate Stats for the Dashboard Widgets
+        $totalCourses = $courses->count();
+        $totalLessons = $courses->sum('lessons_count');
+        $totalAssignments = $courses->sum('assignments_count');
+
+        // C. Calculate "Pending Grading" (Complex Query simplified)
+        // Get all assignments by this teacher, then count submissions with NO grade
+        $pendingGrades = \App\Models\Submission::whereHas('assignment.course', function($q) use ($teacherId) {
+            $q->where('instructor_id', $teacherId);
+        })->whereNull('grade')->count();
+
+        // D. Get 3 Most Recent Submissions (for the "Recent Activity" widget)
+        $recentSubmissions = \App\Models\Submission::whereHas('assignment.course', function($q) use ($teacherId) {
+            $q->where('instructor_id', $teacherId);
+        })->with(['user', 'assignment'])->latest()->take(3)->get();
+
+        return view('teacher.courses.index', compact('courses', 'totalCourses', 'totalLessons', 'totalAssignments', 'pendingGrades', 'recentSubmissions'));
     }
 
     // 2. Show the "Create Course" Form
