@@ -1,5 +1,5 @@
 import React from 'react';
-import { BookOpen, Facebook, Twitter, Instagram, Linkedin } from 'lucide-react';
+import { Facebook, Twitter, Instagram, Linkedin, ShieldCheck } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 
 export function Footer() {
@@ -9,63 +9,68 @@ export function Footer() {
 
   if (isAuthPage || isDashboard) return null;
 
-  return (
-    <footer className="bg-gray-50 border-t">
+return (
+    /* 1. MATCHING NAVBAR BASE: Uses the exact #A51C30/90 Crimson with glass effect */
+    <footer className="w-full border-t border-white/10 bg-[#A51C30]/100 backdrop-blur-md shadow-2xl">
       <div className="container mx-auto px-4 md:px-6 py-12">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
+          
+          {/* BRANDING: Exact match to Navbar Logo */}
           <div className="space-y-4">
-            <Link to="/" className="flex items-center gap-2 font-bold text-xl text-primary-600">
-              <BookOpen className="h-6 w-6" />
-              <span>EduLearn</span>
+            <Link to="/" className="flex items-center gap-2 font-serif font-bold text-2xl text-white tracking-tight">
+              <ShieldCheck className="h-7 w-7 text-[#F2A900] drop-shadow-[0_0_8px_rgba(242,169,0,0.5)]" />
+              <span>LAON ATHENAEUM</span>
             </Link>
-            <p className="text-sm text-gray-500">
-              Empowering students and teachers worldwide with accessible, high-quality education.
+            <p className="text-sm text-gray-200 font-serif italic leading-relaxed">
+              Empowering the youth with honor and excellence through high-quality education.
             </p>
             <div className="flex gap-4">
-              <a href="#" className="text-gray-400 hover:text-primary-600"><Facebook className="h-5 w-5" /></a>
-              <a href="#" className="text-gray-400 hover:text-primary-600"><Twitter className="h-5 w-5" /></a>
-              <a href="#" className="text-gray-400 hover:text-primary-600"><Instagram className="h-5 w-5" /></a>
-              <a href="#" className="text-gray-400 hover:text-primary-600"><Linkedin className="h-5 w-5" /></a>
+              {[Facebook, Twitter, Instagram, Linkedin].map((Icon, idx) => (
+                <a key={idx} href="#" className="text-gray-300 hover:text-[#F2A900] transition-colors">
+                  <Icon className="h-5 w-5" />
+                </a>
+              ))}
             </div>
           </div>
           
+          {/* LINKS: Serif & Muted White for consistency */}
           <div>
-            <h3 className="font-semibold mb-4">Platform</h3>
-            <ul className="space-y-2 text-sm text-gray-500">
-              <li><Link to="/courses" className="hover:text-primary-600">Browse Courses</Link></li>
-              <li><Link to="/mentors" className="hover:text-primary-600">Find a Mentor</Link></li>
-              <li><Link to="/pricing" className="hover:text-primary-600">Pricing</Link></li>
-              <li><Link to="/business" className="hover:text-primary-600">For Business</Link></li>
+            <h3 className="font-serif font-bold uppercase tracking-widest text-[#F2A900] mb-4 text-xs">Platform</h3>
+            <ul className="space-y-2 text-sm text-gray-200 font-serif">
+              <li><Link to="/courses" className="hover:text-white">Browse Courses</Link></li>
+              <li><Link to="/mentors" className="hover:text-white">Find a Mentor</Link></li>
+              <li><Link to="/pricing" className="hover:text-white">Pricing</Link></li>
             </ul>
           </div>
 
           <div>
-            <h3 className="font-semibold mb-4">Support</h3>
-            <ul className="space-y-2 text-sm text-gray-500">
-              <li><Link to="/help" className="hover:text-primary-600">Help Center</Link></li>
-              <li><Link to="/terms" className="hover:text-primary-600">Terms of Service</Link></li>
-              <li><Link to="/privacy" className="hover:text-primary-600">Privacy Policy</Link></li>
-              <li><Link to="/contact" className="hover:text-primary-600">Contact Us</Link></li>
+            <h3 className="font-serif font-bold uppercase tracking-widest text-[#F2A900] mb-4 text-xs">Support</h3>
+            <ul className="space-y-2 text-sm text-gray-200 font-serif">
+              <li><Link to="/help" className="hover:text-white">Help Center</Link></li>
+              <li><Link to="/terms" className="hover:text-white">Terms of Service</Link></li>
+              <li><Link to="/privacy" className="hover:text-white">Privacy Policy</Link></li>
             </ul>
           </div>
 
+          {/* NEWSLETTER: Input matches Auth Page styles */}
           <div>
-            <h3 className="font-semibold mb-4">Stay Updated</h3>
-            <p className="text-sm text-gray-500 mb-4">Subscribe to our newsletter for the latest updates.</p>
-            <div className="flex gap-2">
+            <h3 className="font-serif font-bold uppercase tracking-widest text-[#F2A900] mb-4 text-xs">Stay Updated</h3>
+            <div className="flex flex-col gap-3">
               <input 
                 type="email" 
                 placeholder="Enter your email" 
-                className="flex h-9 w-full rounded-md border border-gray-300 bg-white px-3 py-1 text-sm shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-gray-500 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary-600"
+                className="flex h-10 w-full rounded-lg border border-white/20 bg-white/10 px-4 py-2 text-sm text-white placeholder:text-gray-400 focus:outline-none focus:ring-1 focus:ring-[#F2A900]"
               />
-              <button className="bg-primary-600 text-white h-9 px-4 rounded-md text-sm font-medium hover:bg-primary-700">
+              <button className="bg-white text-[#A51C30] h-10 px-4 rounded-lg text-sm font-serif font-bold hover:bg-gray-100 shadow-lg transform hover:-translate-y-1 transition-all">
                 Subscribe
               </button>
             </div>
           </div>
         </div>
-        <div className="mt-12 pt-8 border-t text-center text-sm text-gray-500">
-          © 2025 EduLearn Inc. All rights reserved.
+
+        {/* BOTTOM COPYRIGHT */}
+        <div className="mt-12 pt-8 border-t border-white/10 text-center text-xs font-serif tracking-widest text-gray-300 uppercase">
+          © 2026 LAON ATHENAEUM. ALL RIGHTS RESERVED.
         </div>
       </div>
     </footer>
