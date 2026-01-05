@@ -1,9 +1,13 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
 import { Modal } from '../../components/ui/Modal';
 import { Search, Shield, User, GraduationCap, Trash2, Mail, Plus, Edit2 } from 'lucide-react';
 import { ROLES } from '../../lib/utils';
+import axios from 'axios';
+
+// Define your API URL (Adjust port if different)
+const API_URL = "http://127.0.0.1:8000/api/users";
 
 export default function UsersList() {
   const [searchTerm, setSearchTerm] = useState('');
@@ -11,22 +15,42 @@ export default function UsersList() {
   const [isEditMode, setIsEditMode] = useState(false);
   const [editingUser, setEditingUser] = useState(null);
   
-  // Mock Data matching `users` table
-  const [users, setUsers] = useState([
-    { id: 1, name: 'System Admin', email: 'admin@lms.com', role: ROLES.ADMIN, created_at: '2025-12-26 06:08:30' },
-    { id: 2, name: 'Prof. Snape', email: 'teacher@lms.com', role: ROLES.TEACHER, created_at: '2025-12-26 06:08:30' },
-    { id: 3, name: 'Harry Potter', email: 'student@lms.com', role: ROLES.STUDENT, created_at: '2025-12-26 06:08:30' },
-    { id: 4, name: 'Ron Weasley', email: 'ron@lms.com', role: ROLES.STUDENT, created_at: '2025-12-28 12:00:00' },
-  ]);
+  // State for Users and Loading status
+  const [users, setUsers] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  // 1. FETCH DATA ON COMPONENT MOUNT
+  useEffect(() => {
+    fetchUsers();
+  }, []);
+
+  const fetchUsers = async () => {
+    try {
+      const response = await axios.get(API_URL);
+      setUsers(response.data);
+      setIsLoading(false);
+    } catch (error) {
+      console.error("Error fetching users:", error);
+      setIsLoading(false);
+    }
+  };
 
   const filteredUsers = users.filter(user => 
     user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     user.email.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const handleDelete = (id) => {
+  // 2. HANDLE DELETE
+  const handleDelete = async (id) => {
     if (window.confirm('Are you sure you want to delete this user? This action cannot be undone.')) {
-      setUsers(users.filter(u => u.id !== id));
+      try {
+        await axios.delete(`${API_URL}/${id}`);
+        // Update UI immediately by filtering out the deleted ID
+        setUsers(users.filter(u => u.id !== id));
+      } catch (error) {
+        console.error("Error deleting user:", error);
+        alert("Failed to delete user.");
+      }
     }
   };
 
@@ -42,26 +66,43 @@ export default function UsersList() {
     setIsModalOpen(true);
   };
 
-  const handleSaveUser = (e) => {
+  // 3. HANDLE SAVE (ADD OR EDIT)
+  const handleSaveUser = async (e) => {
     e.preventDefault();
     const formData = new FormData(e.target);
+    
+    // Prepare data object
     const userData = {
       name: formData.get('name'),
       email: formData.get('email'),
       role: parseInt(formData.get('role')),
     };
 
-    if (isEditMode && editingUser) {
-      setUsers(users.map(u => u.id === editingUser.id ? { ...u, ...userData } : u));
-    } else {
-      const newUser = {
-        id: Math.max(...users.map(u => u.id), 0) + 1,
-        created_at: new Date().toISOString().slice(0, 19).replace('T', ' '),
-        ...userData
-      };
-      setUsers([...users, newUser]);
+    // If adding a new user, we need a password (backend usually requires it)
+    if (!isEditMode) {
+        userData.password = formData.get('password'); 
     }
-    setIsModalOpen(false);
+
+    try {
+      if (isEditMode && editingUser) {
+        // --- EDIT MODE (PUT Request) ---
+        const response = await axios.put(`${API_URL}/${editingUser.id}`, userData);
+        
+        // Update the specific user in the local state with the response from server
+        setUsers(users.map(u => u.id === editingUser.id ? response.data.user : u));
+      } else {
+        // --- ADD MODE (POST Request) ---
+        const response = await axios.post(API_URL, userData);
+        
+        // Add the new user from server response to the list
+        // (We expect the backend to return { message: "...", user: {...} })
+        setUsers([response.data.user, ...users]); 
+      }
+      setIsModalOpen(false);
+    } catch (error) {
+      console.error("Error saving user:", error);
+      alert("Failed to save user. Check console for details.");
+    }
   };
 
   return (
@@ -90,6 +131,9 @@ export default function UsersList() {
         </div>
         
         <div className="overflow-x-auto">
+          {isLoading ? (
+             <div className="p-8 text-center text-gray-500">Loading users...</div>
+          ) : (
           <table className="w-full text-sm text-left">
             <thead className="bg-gray-50 text-gray-500 font-medium border-b">
               <tr>
@@ -154,6 +198,7 @@ export default function UsersList() {
               ))}
             </tbody>
           </table>
+          )}
         </div>
       </div>
 
@@ -171,6 +216,15 @@ export default function UsersList() {
             <label className="text-sm font-medium text-gray-700">Email Address</label>
             <Input name="email" type="email" defaultValue={editingUser?.email} required placeholder="john@example.com" />
           </div>
+          
+          {/* Only show Password field when ADDING a user */}
+          {!isEditMode && (
+            <div className="space-y-2">
+                <label className="text-sm font-medium text-gray-700">Password</label>
+                <Input name="password" type="password" required placeholder="******" />
+            </div>
+          )}
+
           <div className="space-y-2">
             <label className="text-sm font-medium text-gray-700">Role</label>
             <select 
