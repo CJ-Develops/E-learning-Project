@@ -6,7 +6,7 @@ import { Search, Shield, User, GraduationCap, Trash2, Mail, Plus, Edit2 } from '
 import { ROLES } from '../../lib/utils';
 import axios from 'axios';
 
-// Define your API URL (Adjust port if different)
+// Ensure this matches your Laravel URL
 const API_URL = "http://127.0.0.1:8000/api/users";
 
 export default function UsersList() {
@@ -14,12 +14,10 @@ export default function UsersList() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
   const [editingUser, setEditingUser] = useState(null);
-  
-  // State for Users and Loading status
   const [users, setUsers] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  // 1. FETCH DATA ON COMPONENT MOUNT
+  // Load users on start
   useEffect(() => {
     fetchUsers();
   }, []);
@@ -35,21 +33,49 @@ export default function UsersList() {
     }
   };
 
-  const filteredUsers = users.filter(user => 
-    user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    user.email.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  // --- CONNECTING THE ADD/EDIT BUTTON TO DATABASE ---
+  const handleSaveUser = async (e) => {
+    e.preventDefault();
+    const formData = new FormData(e.target);
+    
+    // Prepare data
+    const userData = {
+      name: formData.get('name'),
+      email: formData.get('email'),
+      role: parseInt(formData.get('role')),
+    };
 
-  // 2. HANDLE DELETE
+    // Include password only if creating a NEW user
+    if (!isEditMode) {
+        userData.password = formData.get('password');
+    }
+
+    try {
+      if (isEditMode && editingUser) {
+        // Update existing user (PUT)
+        const response = await axios.put(`${API_URL}/${editingUser.id}`, userData);
+        setUsers(users.map(u => u.id === editingUser.id ? response.data.user : u));
+      } else {
+        // Create new user (POST)
+        const response = await axios.post(API_URL, userData);
+        // Add the new user to the list immediately
+        setUsers([response.data.user, ...users]); 
+      }
+      setIsModalOpen(false);
+    } catch (error) {
+      console.error("Error saving user:", error);
+      alert("Failed to save. check console for details.");
+    }
+  };
+  // --------------------------------------------------
+
   const handleDelete = async (id) => {
-    if (window.confirm('Are you sure you want to delete this user? This action cannot be undone.')) {
+    if (window.confirm('Are you sure you want to delete this user?')) {
       try {
         await axios.delete(`${API_URL}/${id}`);
-        // Update UI immediately by filtering out the deleted ID
         setUsers(users.filter(u => u.id !== id));
       } catch (error) {
-        console.error("Error deleting user:", error);
-        alert("Failed to delete user.");
+        console.error("Error deleting:", error);
       }
     }
   };
@@ -66,44 +92,10 @@ export default function UsersList() {
     setIsModalOpen(true);
   };
 
-  // 3. HANDLE SAVE (ADD OR EDIT)
-  const handleSaveUser = async (e) => {
-    e.preventDefault();
-    const formData = new FormData(e.target);
-    
-    // Prepare data object
-    const userData = {
-      name: formData.get('name'),
-      email: formData.get('email'),
-      role: parseInt(formData.get('role')),
-    };
-
-    // If adding a new user, we need a password (backend usually requires it)
-    if (!isEditMode) {
-        userData.password = formData.get('password'); 
-    }
-
-    try {
-      if (isEditMode && editingUser) {
-        // --- EDIT MODE (PUT Request) ---
-        const response = await axios.put(`${API_URL}/${editingUser.id}`, userData);
-        
-        // Update the specific user in the local state with the response from server
-        setUsers(users.map(u => u.id === editingUser.id ? response.data.user : u));
-      } else {
-        // --- ADD MODE (POST Request) ---
-        const response = await axios.post(API_URL, userData);
-        
-        // Add the new user from server response to the list
-        // (We expect the backend to return { message: "...", user: {...} })
-        setUsers([response.data.user, ...users]); 
-      }
-      setIsModalOpen(false);
-    } catch (error) {
-      console.error("Error saving user:", error);
-      alert("Failed to save user. Check console for details.");
-    }
-  };
+  const filteredUsers = users.filter(user => 
+    user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    user.email.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
   return (
     <div className="space-y-6">
@@ -119,89 +111,59 @@ export default function UsersList() {
 
       <div className="bg-white rounded-xl border shadow-sm overflow-hidden">
         <div className="p-4 border-b bg-gray-50/50 flex items-center gap-4">
-          <div className="relative flex-1 max-w-sm">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-            <Input 
-              className="pl-9 bg-white" 
-              placeholder="Search by name or email..." 
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
-          </div>
+            {/* Search Input */}
+            <div className="relative flex-1 max-w-sm">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                <Input 
+                className="pl-9 bg-white" 
+                placeholder="Search..." 
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                />
+            </div>
         </div>
         
         <div className="overflow-x-auto">
-          {isLoading ? (
-             <div className="p-8 text-center text-gray-500">Loading users...</div>
-          ) : (
+          {isLoading ? <div className="p-4">Loading...</div> : 
           <table className="w-full text-sm text-left">
             <thead className="bg-gray-50 text-gray-500 font-medium border-b">
               <tr>
-                <th className="px-6 py-4 w-20">ID</th>
-                <th className="px-6 py-4">User Details</th>
+                <th className="px-6 py-4">ID</th>
+                <th className="px-6 py-4">User</th>
                 <th className="px-6 py-4">Role</th>
-                <th className="px-6 py-4">Joined Date</th>
                 <th className="px-6 py-4 text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
               {filteredUsers.map((user) => (
-                <tr key={user.id} className="hover:bg-gray-50/80 transition-colors">
-                  <td className="px-6 py-4 text-gray-500 font-mono text-xs">#{user.id}</td>
+                <tr key={user.id} className="hover:bg-gray-50/80">
+                  <td className="px-6 py-4">#{user.id}</td>
                   <td className="px-6 py-4">
-                    <div className="flex items-center gap-3">
-                      <div className="h-10 w-10 rounded-full bg-gradient-to-br from-primary-100 to-primary-200 flex items-center justify-center text-primary-700 font-bold shadow-inner">
-                        {user.name.charAt(0)}
-                      </div>
-                      <div>
-                        <div className="font-medium text-gray-900">{user.name}</div>
-                        <div className="text-gray-500 text-xs flex items-center gap-1">
-                          <Mail className="h-3 w-3" /> {user.email}
-                        </div>
-                      </div>
-                    </div>
+                    <div className="font-medium text-gray-900">{user.name}</div>
+                    <div className="text-gray-500 text-xs">{user.email}</div>
                   </td>
                   <td className="px-6 py-4">
-                    <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium border ${
-                      user.role === ROLES.ADMIN ? 'bg-purple-50 text-purple-700 border-purple-200' :
-                      user.role === ROLES.TEACHER ? 'bg-blue-50 text-blue-700 border-blue-200' :
-                      'bg-green-50 text-green-700 border-green-200'
+                    <span className={`px-2 py-1 rounded-xs border ${
+                      user.role === ROLES.ADMIN ? 'bg-purple-50 text-purple-700' :
+                      user.role === ROLES.TEACHER ? 'bg-blue-50 text-blue-700' :
+                      'bg-green-50 text-green-700'
                     }`}>
-                      {user.role === ROLES.ADMIN && <Shield className="h-3 w-3" />}
-                      {user.role === ROLES.TEACHER && <GraduationCap className="h-3 w-3" />}
-                      {user.role === ROLES.STUDENT && <User className="h-3 w-3" />}
                       {user.role === ROLES.ADMIN ? 'Admin' : user.role === ROLES.TEACHER ? 'Teacher' : 'Student'}
                     </span>
                   </td>
-                  <td className="px-6 py-4 text-gray-500 text-xs">
-                    {new Date(user.created_at).toLocaleDateString()}
-                  </td>
-                  <td className="px-6 py-4 text-right">
-                    <div className="flex items-center justify-end gap-2">
-                      <button 
-                        onClick={() => handleOpenEdit(user)}
-                        className="text-gray-400 hover:text-primary-600 transition-colors p-2 hover:bg-primary-50 rounded-lg"
-                        title="Edit User"
-                      >
-                        <Edit2 className="h-4 w-4" />
-                      </button>
-                      <button 
-                        onClick={() => handleDelete(user.id)}
-                        className="text-gray-400 hover:text-red-600 transition-colors p-2 hover:bg-red-50 rounded-lg"
-                        title="Delete User"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </button>
-                    </div>
+                  <td className="px-6 py-4 text-right flex justify-end gap-2">
+                    <button onClick={() => handleOpenEdit(user)} className="text-gray-400 hover:text-blue-600"><Edit2 className="h-4 w-4" /></button>
+                    <button onClick={() => handleDelete(user.id)} className="text-gray-400 hover:text-red-600"><Trash2 className="h-4 w-4" /></button>
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
-          )}
+          }
         </div>
       </div>
 
+      {/* MODAL FORM */}
       <Modal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
@@ -209,29 +171,25 @@ export default function UsersList() {
       >
         <form onSubmit={handleSaveUser} className="space-y-4">
           <div className="space-y-2">
-            <label className="text-sm font-medium text-gray-700">Full Name</label>
+            <label className="text-sm font-medium">Full Name</label>
             <Input name="name" defaultValue={editingUser?.name} required placeholder="John Doe" />
           </div>
           <div className="space-y-2">
-            <label className="text-sm font-medium text-gray-700">Email Address</label>
+            <label className="text-sm font-medium">Email Address</label>
             <Input name="email" type="email" defaultValue={editingUser?.email} required placeholder="john@example.com" />
           </div>
           
-          {/* Only show Password field when ADDING a user */}
+          {/* PASSWORD FIELD - Only Visible when Adding New User */}
           {!isEditMode && (
-            <div className="space-y-2">
-                <label className="text-sm font-medium text-gray-700">Password</label>
+             <div className="space-y-2">
+                <label className="text-sm font-medium">Password</label>
                 <Input name="password" type="password" required placeholder="******" />
             </div>
           )}
 
           <div className="space-y-2">
-            <label className="text-sm font-medium text-gray-700">Role</label>
-            <select 
-              name="role" 
-              defaultValue={editingUser?.role || ROLES.STUDENT}
-              className="flex h-10 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-600"
-            >
+            <label className="text-sm font-medium">Role</label>
+            <select name="role" defaultValue={editingUser?.role || ROLES.STUDENT} className="w-full border p-2 rounded">
               <option value={ROLES.STUDENT}>Student</option>
               <option value={ROLES.TEACHER}>Teacher</option>
               <option value={ROLES.ADMIN}>Admin</option>
