@@ -10,21 +10,19 @@ import {
   FileText, 
   Menu,
   X,
-  Bell,
-  Search,
   ChevronDown,
   User,
   Check,
-  ShieldCheck
+  ShieldCheck,
+  BarChart3
 } from 'lucide-react';
 import { cn, getRoleName, ROLES, getRoleId } from '../lib/utils';
+import NotificationBell from '../components/notifications/NotificationBell';
 
 export default function DashboardLayout() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
-  const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   
-  const notificationRef = useRef(null);
   const profileRef = useRef(null);
   
   const navigate = useNavigate();
@@ -33,30 +31,13 @@ export default function DashboardLayout() {
   const [user, setUser] = useState(JSON.parse(localStorage.getItem('user')) || { role: ROLES.STUDENT, name: 'Guest User' });
   const roleName = getRoleName(user.role);
 
-  const [notifications, setNotifications] = useState([
-    { id: 1, title: "Assignment 'Database Design' due tomorrow", time: "2 hours ago", type: "urgent", read: false, link: "/dashboard/assignments" },
-    { id: 2, title: "New curriculum material available", time: "5 hours ago", type: "info", read: false, link: "/dashboard/courses" },
-    { id: 3, title: "Scholarly submission graded: 92/100", time: "1 day ago", type: "success", read: true, link: "/dashboard/grading" },
-  ]);
-
-  const unreadCount = notifications.filter(n => !n.read).length;
-
   useEffect(() => {
     function handleClickOutside(event) {
-      if (notificationRef.current && !notificationRef.current.contains(event.target)) setIsNotificationsOpen(false);
       if (profileRef.current && !profileRef.current.contains(event.target)) setIsProfileOpen(false);
     }
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
-
-  const handleNotificationClick = (notif) => {
-    setNotifications(notifications.map(n => n.id === notif.id ? { ...n, read: true } : n));
-    setIsNotificationsOpen(false);
-    navigate(notif.link);
-  };
-
-  const handleMarkAllRead = () => setNotifications(notifications.map(n => ({ ...n, read: true })));
 
   const handleSwitchRole = (newRoleName) => {
     const newRoleId = getRoleId(newRoleName);
@@ -81,11 +62,12 @@ export default function DashboardLayout() {
       teacher: [
         { icon: LayoutDashboard, label: 'Instructor Hub', path: '/dashboard' },
         { icon: BookOpen, label: 'My Courses', path: '/dashboard/courses' },
-        { icon: GraduationCap, label: 'Evaluations', path: '/dashboard/grading' },
+        { icon: FileText, label: 'Assignments', path: '/dashboard/assignments/manage' },
+        { icon: GraduationCap, label: 'Evaluations', path: '/dashboard/assignments/grading' },
       ],
       student: [
-        { icon: LayoutDashboard, label: 'My Learning', path: '/dashboard' },
-        { icon: BookOpen, label: 'Library', path: '/dashboard/courses' },
+        { icon: LayoutDashboard, label: 'Course Library', path: '/dashboard' },
+        { icon: BarChart3, label: 'Grades', path: '/dashboard/student/grades' },
         { icon: FileText, label: 'Assignments', path: '/dashboard/assignments' },
       ]
     };
@@ -204,14 +186,6 @@ return (
               <Menu className="h-6 w-6" />
             </button>
             
-            <div className="relative w-full max-w-lg hidden md:block">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-              <input 
-                type="text"
-                placeholder="Search curriculums or scholarly records..." 
-                className="w-full pl-12 pr-4 py-2.5 bg-gray-100/50 border-none rounded-xl text-sm font-serif italic focus:ring-2 focus:ring-[#A51C30]/10 focus:bg-white transition-all"
-              />
-            </div>
           </div>
 
           <div className="flex items-center gap-8">
@@ -234,34 +208,7 @@ return (
             </div>
 
             {/* Notification Bell */}
-            <div className="relative" ref={notificationRef}>
-              <button onClick={() => setIsNotificationsOpen(!isNotificationsOpen)} className="relative p-2 text-gray-400 hover:text-[#A51C30] transition-colors">
-                <Bell className="h-5 w-5" />
-                {unreadCount > 0 && <span className="absolute top-2 right-2.5 h-2 w-2 bg-[#F2A900] rounded-full ring-2 ring-white"></span>}
-              </button>
-
-              {isNotificationsOpen && (
-                <div className="absolute right-0 mt-4 w-80 bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden z-50 animate-in fade-in zoom-in-95 duration-200">
-                  <div className="px-5 py-4 border-b border-gray-50 flex justify-between items-center bg-gray-50/50">
-                    <h3 className="font-serif font-bold text-gray-900">Notifications</h3>
-                    <button onClick={handleMarkAllRead} className="text-[10px] font-bold uppercase tracking-widest text-[#A51C30] hover:underline">Mark all read</button>
-                  </div>
-                  <div className="max-h-[350px] overflow-y-auto">
-                    {notifications.map((notif) => (
-                      <div key={notif.id} onClick={() => handleNotificationClick(notif)} className={cn("px-5 py-4 hover:bg-gray-50 transition-colors border-b border-gray-50 last:border-0 cursor-pointer", !notif.read && "bg-[#A51C30]/5")}>
-                        <div className="flex gap-4">
-                          <div className={cn("mt-1.5 h-2 w-2 rounded-full shrink-0", notif.type === 'urgent' ? "bg-red-600" : notif.type === 'success' ? "bg-green-600" : "bg-[#A51C30]")} />
-                          <div>
-                            <p className={cn("text-sm font-serif", !notif.read ? "font-bold text-gray-900" : "text-gray-600")}>{notif.title}</p>
-                            <p className="text-[10px] text-gray-400 mt-1 uppercase font-bold tracking-tighter">{notif.time}</p>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
+            <NotificationBell />
 
             {/* Profile */}
             <div className="relative" ref={profileRef}>

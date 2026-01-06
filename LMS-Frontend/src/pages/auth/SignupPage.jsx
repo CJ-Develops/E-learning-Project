@@ -3,14 +3,13 @@ import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
-import { BookOpen, User, GraduationCap, ShieldCheck, ArrowRight, ArrowLeft } from 'lucide-react';
+import { BookOpen, User, GraduationCap, ArrowRight, ArrowLeft } from 'lucide-react';
 import { cn } from '../../lib/utils';
 
 // Define roles locally to ensure they never break
 const ROLE_OPTIONS = {
-    STUDENT: 'student',
-    FACULTY: 'faculty', // Changed from 'teacher' to match your UI
-    ADMIN: 'admin'
+    STUDENT: 0,
+    TEACHER: 1,
 };
 
 export default function SignupPage() {
@@ -30,13 +29,11 @@ export default function SignupPage() {
     const fullName = `${firstName} ${lastName}`;
 
     try {
-        // 2. Send to Backend
-        // We send 'selectedRole' directly because it is already a string ("student", "faculty", "admin")
         const response = await axios.post('http://127.0.0.1:8000/api/register', {
             name: fullName,
             email: email,
             password: password,
-            role: selectedRole // <--- Sends "faculty" exactly
+            role: selectedRole // numeric 0 or 1 only
         });
 
         // 3. Success!
@@ -105,11 +102,10 @@ export default function SignupPage() {
           {/* Role Selector */}
           <div className="mb-6">
             <p className="text-xs font-bold text-gray-400 uppercase tracking-widest text-center mb-3">I want to join as</p>
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-2 gap-3">
               {[
                 { id: ROLE_OPTIONS.STUDENT, label: 'Student', icon: User },
-                { id: ROLE_OPTIONS.FACULTY, label: 'Faculty', icon: GraduationCap },
-                { id: ROLE_OPTIONS.ADMIN, label: 'Admin', icon: ShieldCheck }
+                { id: ROLE_OPTIONS.TEACHER, label: 'Faculty', icon: GraduationCap },
               ].map((role) => (
                 <button
                   key={role.id}

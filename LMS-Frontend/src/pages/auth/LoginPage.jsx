@@ -3,12 +3,14 @@ import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
-import { BookOpen, User, GraduationCap, ShieldCheck, ArrowLeft } from 'lucide-react';
+import { BookOpen, User, GraduationCap, ShieldCheck, ArrowLeft, Eye, EyeOff } from 'lucide-react';
 import { cn, ROLES } from '../../lib/utils';
 
 export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [selectedDemoRole, setSelectedDemoRole] = useState(ROLES.STUDENT);
+  const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const navigate = useNavigate();
 
   // Demo credentials matching your Database
@@ -20,6 +22,7 @@ export default function LoginPage() {
 
   const handleDemoClick = (roleId) => {
     setSelectedDemoRole(roleId);
+    setPassword('');
   };
 
   const handleSubmit = async (e) => {
@@ -27,7 +30,7 @@ export default function LoginPage() {
     setIsLoading(true);
     
     const email = e.target.elements.email.value;
-    const password = e.target.elements.password.value;
+    const passwordValue = e.target.elements.password.value;
 
     // FIX: Map Roles to the SPECIFIC numbers your database uses
     let rolePayload = 0; // Default to Student (0)
@@ -43,7 +46,7 @@ export default function LoginPage() {
     try {
         const response = await axios.post('http://127.0.0.1:8000/api/login', {
             email: email,
-            password: password,
+            password: passwordValue,
             role: rolePayload 
         });
 
@@ -157,13 +160,24 @@ export default function LoginPage() {
                   Forgot password?
                 </Link>
               </div>
-              <Input 
-                type="password" 
-                name="password"
-                defaultValue={demoCredentials[selectedDemoRole].password} 
-                required 
-                className="py-6 px-4 rounded-lg border-gray-300 focus:ring-1 focus:ring-[#A51C30] focus:border-[#A51C30] transition-all bg-white" 
-               />
+              <div className="relative">
+                <Input 
+                  type={showPassword ? "text" : "password"} 
+                  name="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required 
+                  className="py-6 pl-4 pr-12 rounded-lg border-gray-300 focus:ring-1 focus:ring-[#A51C30] focus:border-[#A51C30] transition-all bg-white" 
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((prev) => !prev)}
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-[#A51C30] transition-colors"
+                  aria-label={showPassword ? 'Hide password' : 'Show password'}
+                >
+                  {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                </button>
+              </div>
             </div>
 
             <Button 

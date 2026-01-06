@@ -1,10 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios'; // <--- IMPORT AXIOS
+import api from '../../lib/apiClient';
 import { 
   BookOpen, Users, Settings, LogOut, LayoutDashboard, 
-  GraduationCap, Library, FileText, Search, Bell, 
-  Trash2, Edit, Plus 
+  GraduationCap, FileText, Search, Bell, 
+  Trash2, Edit, Plus, CheckCircle, TrendingUp,
+  BarChart3 
 } from 'lucide-react';
 
 // --- MAIN DASHBOARD COMPONENT ---
@@ -106,6 +107,9 @@ function AdminView({ user, onLogout }) {
 function ScholarsView() {
     const [users, setUsers] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
+    const [courses, setCourses] = useState([]);
+    const [selectedCourse, setSelectedCourse] = useState({});
+    const [activeTab, setActiveTab] = useState('all');
     
     // MODAL STATE (For the "Add User" Popup)
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -116,16 +120,26 @@ function ScholarsView() {
     // 1. Fetch Users
     useEffect(() => {
         fetchUsers();
+        fetchCourses();
     }, []);
 
     const fetchUsers = async () => {
         try {
-            const response = await axios.get('http://127.0.0.1:8000/api/users'); 
+            const response = await api.get('/users'); 
             setUsers(response.data);
             setIsLoading(false);
         } catch (error) {
             console.error("Error fetching users:", error);
             setIsLoading(false);
+        }
+    };
+
+    const fetchCourses = async () => {
+        try {
+            const response = await api.get('/courses');
+            setCourses(response.data || []);
+        } catch (error) {
+            console.error("Error fetching courses:", error);
         }
     };
 
@@ -135,7 +149,7 @@ function ScholarsView() {
 
         try {
             // Send DELETE command to Laravel
-            await axios.delete(`http://127.0.0.1:8000/api/users/${id}`);
+            await api.delete(`/users/${id}`);
             
             // Remove from screen ONLY if backend succeeds
             setUsers(users.filter(user => user.id !== id));
@@ -154,8 +168,8 @@ function ScholarsView() {
     const handleAddUser = async (e) => {
         e.preventDefault();
         try {
-            const response = await axios.post('http://127.0.0.1:8000/api/users', formData);
-            setUsers([...users, response.data]); // Add new user to list
+            const response = await api.post('/users', formData);
+            setUsers([...users, response.data.user]); // Add new user to list
             setIsModalOpen(false); // Close popup
             setFormData({ name: '', email: '', password: '', role: '0' }); // Reset form
             alert("User created successfully!");
@@ -163,6 +177,30 @@ function ScholarsView() {
             alert("Failed to create user. Email might be taken.");
         }
     };
+
+    const handleEnroll = async (userId, courseId) => {
+        if (!courseId) return;
+        try {
+            const { data } = await api.post('/admin/enroll', { user_id: userId, course_id: courseId });
+            const course = courses.find((c) => String(c.id) === String(courseId));
+            alert(`User enrolled in ${course?.title || 'course'}`);
+        } catch (error) {
+            alert(error.response?.data?.message || 'Failed to enroll user.');
+        } finally {
+            setSelectedCourse((prev) => ({ ...prev, [userId]: '' }));
+        }
+    };
+
+    const normalizeRole = (role) => {
+        const r = String(role);
+        if (r === '2') return 'admin';
+        if (r === '1') return 'teacher';
+        return 'student';
+    };
+
+    const displayedUsers = activeTab === 'all'
+        ? users
+        : users.filter((user) => normalizeRole(user.role) === activeTab);
 
     // Helper for Badges
     const getRoleBadge = (role) => {
@@ -187,24 +225,48 @@ function ScholarsView() {
                 </button>
             </div>
 
+            {/* Role Filter Tabs */}
+            <div className="flex flex-wrap gap-2">
+                {[
+                    { key: 'all', label: 'All Users' },
+                    { key: 'student', label: 'Students' },
+                    { key: 'teacher', label: 'Teachers' },
+                    { key: 'admin', label: 'Admins' },
+                ].map((tab) => {
+                    const isActive = activeTab === tab.key;
+                    return (
+                        <button
+                            key={tab.key}
+                            onClick={() => setActiveTab(tab.key)}
+                            className={`px-4 py-2 rounded-full text-sm font-semibold border transition-all ${
+                                isActive
+                                    ? 'bg-[#A51C30] text-white border-[#A51C30] shadow-sm'
+                                    : 'bg-white text-gray-700 border-gray-200 hover:border-[#A51C30]/40 hover:text-[#A51C30]'
+                            }`}
+                        >
+                            {tab.label}
+                        </button>
+                    );
+                })}
+            </div>
+
             {/* Data Table */}
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
                 <table className="w-full text-left text-sm">
                     <thead className="bg-gray-50 border-b border-gray-100 text-gray-500 font-serif font-bold uppercase tracking-wider">
                         <tr>
-                            <th className="p-4 w-20">ID</th>
-                            <th className="p-4">User Details</th>
-                            <th className="p-4">Role</th>
-                            <th className="p-4">Joined Date</th>
+                            <th className="p-4 w-32">Role</th>
+                            <th className="p-4">User</th>
+                            <th className="p-4 w-64">Enroll Course</th>
                             <th className="p-4 text-right">Actions</th>
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-50">
                         {isLoading ? (
-                            <tr><td colSpan="5" className="p-8 text-center text-gray-400">Loading Scholars...</td></tr>
-                        ) : users.map((user) => (
+                            <tr><td colSpan="4" className="p-8 text-center text-gray-400">Loading Scholars...</td></tr>
+                        ) : displayedUsers.map((user) => (
                             <tr key={user.id} className="hover:bg-gray-50 transition-colors">
-                                <td className="p-4 font-mono text-gray-400">#{user.id}</td>
+                                <td className="p-4">{getRoleBadge(user.role)}</td>
                                 <td className="p-4">
                                     <div className="flex items-center gap-3">
                                         <div className="h-10 w-10 rounded-full bg-[#A51C30]/10 text-[#A51C30] flex items-center justify-center font-bold">
@@ -216,13 +278,28 @@ function ScholarsView() {
                                         </div>
                                     </div>
                                 </td>
-                                <td className="p-4">{getRoleBadge(user.role)}</td>
-                                <td className="p-4 text-gray-500">{new Date(user.created_at).toLocaleDateString()}</td>
-                                <td className="p-4 text-right">
+                                <td className="p-4">
+                                    <select
+                                        className="w-full p-2 border rounded-lg text-sm bg-white"
+                                        value={selectedCourse[user.id] || ''}
+                                        onChange={(e) => {
+                                            const courseId = e.target.value;
+                                            setSelectedCourse((prev) => ({ ...prev, [user.id]: courseId }));
+                                            if (courseId) handleEnroll(user.id, courseId);
+                                        }}
+                                    >
+                                        <option value="">Select Course to Enroll...</option>
+                                        {courses.map((course) => (
+                                            <option key={course.id} value={course.id}>{course.title}</option>
+                                        ))}
+                                    </select>
+                                </td>
+                                <td className="p-4 text-right w-24">
                                     <div className="flex justify-end gap-2">
                                         <button 
                                             onClick={() => handleDelete(user.id)}
                                             className="p-2 text-gray-400 hover:text-red-600 transition-colors"
+                                            title="Delete user"
                                         >
                                             <Trash2 size={16} />
                                         </button>
@@ -276,6 +353,51 @@ function ScholarsView() {
 // 3. ADMIN OVERVIEW (Your existing layout)
 // ==========================================
 function AdminOverview({ user }) {
+    const [dashboardStats, setDashboardStats] = useState({
+        total_scholars: 0,
+        active_curriculums: 0,
+        faculty_members: 0,
+        recent_courses: [],
+    });
+    const [loadingStats, setLoadingStats] = useState(true);
+
+    useEffect(() => {
+        const fetchDashboardStats = async () => {
+            try {
+                const { data } = await api.get('/admin/dashboard-stats');
+                setDashboardStats({
+                    total_scholars: data?.total_scholars ?? 0,
+                    active_curriculums: data?.active_curriculums ?? 0,
+                    faculty_members: data?.faculty_members ?? 0,
+                    recent_courses: data?.recent_courses ?? [],
+                });
+            } catch (error) {
+                console.error('Error fetching dashboard stats:', error);
+            } finally {
+                setLoadingStats(false);
+            }
+        };
+
+        fetchDashboardStats();
+    }, []);
+
+    const formatNumber = (value) => Number(value ?? 0).toLocaleString();
+
+    const formatTimeAgo = (timestamp) => {
+        const created = new Date(timestamp);
+        if (Number.isNaN(created.getTime())) return '';
+
+        const seconds = Math.floor((Date.now() - created.getTime()) / 1000);
+        const minutes = Math.floor(seconds / 60);
+        const hours = Math.floor(minutes / 60);
+        const days = Math.floor(hours / 24);
+
+        if (days > 0) return `${days} day${days === 1 ? '' : 's'} ago`;
+        if (hours > 0) return `${hours} hour${hours === 1 ? '' : 's'} ago`;
+        if (minutes > 0) return `${minutes} minute${minutes === 1 ? '' : 's'} ago`;
+        return 'Just now';
+    };
+
     return (
         <>
             <header className="bg-white/80 backdrop-blur-md sticky top-0 z-20 shadow-sm px-8 py-4 flex justify-between items-center border-b border-gray-100">
@@ -299,9 +421,63 @@ function AdminOverview({ user }) {
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <StatCard label="Total Scholars" value="1,234" icon={Users} color="text-[#A51C30]" bg="bg-[#fdf2f2]" />
-                    <StatCard label="Active Curriculums" value="42" icon={BookOpen} color="text-[#A51C30]" bg="bg-[#fdf2f2]" />
-                    <StatCard label="Faculty Members" value="89" icon={GraduationCap} color="text-[#F2A900]" bg="bg-[#fffbeb]" />
+                    <StatCard 
+                        label="Total Scholars" 
+                        value={formatNumber(dashboardStats.total_scholars)} 
+                        icon={Users} 
+                        color="text-[#A51C30]" 
+                        bg="bg-[#fdf2f2]"
+                        loading={loadingStats}
+                    />
+                    <StatCard 
+                        label="Active Curriculums" 
+                        value={formatNumber(dashboardStats.active_curriculums)} 
+                        icon={BookOpen} 
+                        color="text-[#A51C30]" 
+                        bg="bg-[#fdf2f2]"
+                        loading={loadingStats}
+                    />
+                    <StatCard 
+                        label="Faculty Members" 
+                        value={formatNumber(dashboardStats.faculty_members)} 
+                        icon={GraduationCap} 
+                        color="text-[#F2A900]" 
+                        bg="bg-[#fffbeb]"
+                        loading={loadingStats}
+                    />
+                </div>
+
+                <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6 overflow-hidden relative">
+                    <div className="absolute top-0 right-0 p-4 opacity-5">
+                        <TrendingUp className="h-24 w-24 text-[#A51C30]" />
+                    </div>
+                    <h2 className="text-xl font-serif font-bold text-gray-900 mb-6 flex items-center gap-2 relative z-10">
+                        <TrendingUp className="h-5 w-5 text-[#A51C30]" /> Recent Institutional Activity
+                    </h2>
+                    <div className="space-y-4 relative z-10">
+                        {loadingStats && (
+                            <div className="p-4 text-sm text-gray-400 font-serif">Loading recent courses...</div>
+                        )}
+                        {!loadingStats && dashboardStats.recent_courses.length === 0 && (
+                            <div className="p-4 text-sm text-gray-500 font-serif italic">No recent courses found.</div>
+                        )}
+                        {!loadingStats && dashboardStats.recent_courses.map((course) => (
+                            <div key={course.id} className="flex items-center gap-4 p-4 hover:bg-gray-50 rounded-lg transition-all border-b border-gray-100 last:border-0">
+                                <div className="h-10 w-10 rounded-full bg-[#A51C30]/10 flex items-center justify-center text-[#A51C30]">
+                                    <CheckCircle className="h-5 w-5" />
+                                </div>
+                                <div>
+                                    <p className="text-sm font-serif font-bold text-gray-900">
+                                        New Course Added: {course.title}
+                                    </p>
+                                    <p className="text-xs text-gray-500 font-serif">
+                                        {formatTimeAgo(course.created_at)}
+                                        {course.teacher_name ? ` · ${course.teacher_name}` : ''}
+                                    </p>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
                 </div>
             </div>
         </>
@@ -321,8 +497,8 @@ function StudentView({ user, onLogout }) {
         </div>
         <nav className="flex-1 p-4 space-y-2">
             <div className="text-xs text-[#F2A900] uppercase tracking-widest mb-4 px-4 mt-4 font-bold">Student Portal</div>
-            <SidebarItem icon={LayoutDashboard} label="My Learning" active />
-            <SidebarItem icon={Library} label="Library" />
+            <SidebarItem icon={LayoutDashboard} label="Course Library" active />
+            <SidebarItem icon={BarChart3} label="Grades" />
             <SidebarItem icon={FileText} label="Assignments" />
         </nav>
         <div className="p-4 border-t border-white/10">
@@ -363,11 +539,16 @@ function SidebarItem({ icon: Icon, label, active, onClick }) {
     );
 }
 
-function StatCard({ label, value, icon: Icon, color, bg }) {
+function StatCard({ label, value, icon: Icon, color, bg, loading = false }) {
     return (
         <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex items-center gap-4 hover:shadow-md transition-shadow">
             <div className={`h-14 w-14 rounded-xl ${bg} ${color} flex items-center justify-center`}><Icon size={28} /></div>
-            <div><p className="text-xs text-gray-400 uppercase tracking-wider font-bold mb-1">{label}</p><p className="text-3xl font-bold text-gray-900 font-serif">{value}</p></div>
+            <div>
+                <p className="text-xs text-gray-400 uppercase tracking-wider font-bold mb-1">{label}</p>
+                <p className="text-3xl font-bold text-gray-900 font-serif">
+                    {loading ? '...' : value}
+                </p>
+            </div>
         </div>
     );
 }

@@ -10,7 +10,14 @@ class UserController extends Controller
 {
     public function index()
     {
-        return response()->json(User::orderBy('created_at', 'desc')->get());
+        return response()->json(
+            User::with([
+                'courses:id,title',
+                'teachingCourses:id,title',
+            ])
+                ->orderBy('created_at', 'desc')
+                ->get()
+        );
     }
 
     // --- ADD THIS NEW METHOD ---

@@ -1,20 +1,26 @@
 import React, { useState, useEffect } from 'react';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
-import { User, Lock, Bell, Trash2, Upload, CheckCircle } from 'lucide-react';
+import { User, Lock, Bell, Upload, Eye, EyeOff } from 'lucide-react';
 import { cn } from '../../lib/utils';
-import { useNavigate } from 'react-router-dom';
+import api from '../../lib/apiClient';
 
 export default function Settings() {
-  const navigate = useNavigate();
   const [user, setUser] = useState(() => JSON.parse(localStorage.getItem('user')) || { name: 'Guest', email: 'guest@example.com', avatar: null });
   const [activeTab, setActiveTab] = useState('profile');
   const [isLoading, setIsLoading] = useState(false);
 
+  const splitName = (name) => {
+    const trimmed = (name || '').trim();
+    if (!trimmed) return { firstName: '', lastName: '' };
+    const parts = trimmed.split(/\s+/);
+    return { firstName: parts[0] || '', lastName: parts.slice(1).join(' ') || '' };
+  };
+
   // Form States
   const [formData, setFormData] = useState({
-    firstName: user.name.split(' ')[0] || '',
-    lastName: user.name.split(' ')[1] || '',
+    firstName: splitName(user.name).firstName,
+    lastName: splitName(user.name).lastName,
     bio: user.bio || '',
   });
 
@@ -22,14 +28,36 @@ export default function Settings() {
     currentPassword: '',
     newPassword: '',
     confirmPassword: '',
-    is2FAEnabled: user.is2FAEnabled || false
   });
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const [notifications, setNotifications] = useState({
     email: true,
     sms: false,
     updates: true
   });
+
+  useEffect(() => {
+    const fetchUser = async () => {
+      try {
+        const res = await api.get('/user');
+        const apiUser = res.data;
+        setUser(apiUser);
+        setFormData({
+          firstName: splitName(apiUser.name).firstName,
+          lastName: splitName(apiUser.name).lastName,
+          bio: apiUser.bio || '',
+        });
+        localStorage.setItem('user', JSON.stringify(apiUser));
+      } catch (err) {
+        console.error('Failed to load user profile', err);
+      }
+    };
+
+    fetchUser();
+  }, []);
 
   // Handlers
   const handleProfileChange = (e) => {
@@ -45,55 +73,43 @@ export default function Settings() {
     }
   };
 
-  const handleSaveProfile = () => {
+  const handleSaveProfile = async () => {
     setIsLoading(true);
-    setTimeout(() => {
-      const updatedUser = {
-        ...user,
-        name: `${formData.firstName} ${formData.lastName}`,
-        bio: formData.bio
-      };
+    try {
+      const name = `${formData.firstName} ${formData.lastName}`.trim();
+      const res = await api.put('/user/profile', {
+        name,
+        bio: formData.bio,
+      });
+      const updatedUser = res.data.user;
       localStorage.setItem('user', JSON.stringify(updatedUser));
       setUser(updatedUser);
-      setIsLoading(false);
       alert("Profile updated successfully!");
-    }, 800);
-  };
-
-  const handleDeleteAccount = () => {
-    if (window.confirm("Are you sure you want to delete your account? This action cannot be undone.")) {
-      localStorage.removeItem('user');
-      navigate('/auth/login');
-    }
-  };
-
-  const handleUpdatePassword = (e) => {
-    e.preventDefault();
-    if (securityData.newPassword !== securityData.confirmPassword) {
-      alert("New passwords do not match!");
-      return;
-    }
-    if (securityData.newPassword.length < 6) {
-      alert("Password must be at least 6 characters long.");
-      return;
-    }
-    setIsLoading(true);
-    setTimeout(() => {
+    } catch (err) {
+      console.error('Failed to update profile', err);
+      alert(err.response?.data?.message || 'Failed to update profile.');
+    } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleUpdatePassword = async (e) => {
+    e.preventDefault();
+    setIsLoading(true);
+    try {
+      await api.post('/user/change-password', {
+        current_password: securityData.currentPassword,
+        new_password: securityData.newPassword,
+        new_password_confirmation: securityData.confirmPassword,
+      });
       setSecurityData({ ...securityData, currentPassword: '', newPassword: '', confirmPassword: '' });
       alert("Password updated successfully!");
-    }, 1000);
-  };
-
-  const toggle2FA = () => {
-    const newState = !securityData.is2FAEnabled;
-    setSecurityData({ ...securityData, is2FAEnabled: newState });
-    
-    // Persist to local storage for demo
-    const updatedUser = { ...user, is2FAEnabled: newState };
-    localStorage.setItem('user', JSON.stringify(updatedUser));
-    
-    alert(newState ? "Two-Factor Authentication Enabled" : "Two-Factor Authentication Disabled");
+    } catch (err) {
+      console.error('Failed to update password', err);
+      alert(err.response?.data?.message || 'Failed to update password.');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const toggleNotification = (key) => {
@@ -208,21 +224,6 @@ export default function Settings() {
                 </div>
               </div>
 
-              <div className="bg-white p-6 rounded-xl border border-red-100 shadow-sm">
-                <div className="flex items-start justify-between">
-                  <div>
-                    <h2 className="text-lg font-semibold text-red-600">Delete Account</h2>
-                    <p className="text-sm text-gray-500 mt-1">Permanently remove your account and all of its contents.</p>
-                  </div>
-                  <Button 
-                    variant="danger" 
-                    className="bg-white text-red-600 border border-red-200 hover:bg-red-50 hover:text-red-700 shadow-none"
-                    onClick={handleDeleteAccount}
-                  >
-                    Delete Account
-                  </Button>
-                </div>
-              </div>
             </div>
           )}
 
@@ -234,30 +235,63 @@ export default function Settings() {
                 <form className="space-y-4" onSubmit={handleUpdatePassword}>
                   <div className="space-y-2">
                     <label className="text-sm font-medium text-gray-700">Current Password</label>
-                    <Input 
-                      type="password" 
-                      value={securityData.currentPassword} 
-                      onChange={(e) => setSecurityData({...securityData, currentPassword: e.target.value})}
-                      required
-                    />
+                    <div className="relative">
+                      <Input 
+                        type={showCurrentPassword ? "text" : "password"} 
+                        value={securityData.currentPassword} 
+                        onChange={(e) => setSecurityData({...securityData, currentPassword: e.target.value})}
+                        required
+                        className="pr-10"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowCurrentPassword((prev) => !prev)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-[#A51C30] transition-colors"
+                        aria-label={showCurrentPassword ? 'Hide password' : 'Show password'}
+                      >
+                        {showCurrentPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      </button>
+                    </div>
                   </div>
                   <div className="space-y-2">
                     <label className="text-sm font-medium text-gray-700">New Password</label>
-                    <Input 
-                      type="password" 
-                      value={securityData.newPassword} 
-                      onChange={(e) => setSecurityData({...securityData, newPassword: e.target.value})}
-                      required
-                    />
+                    <div className="relative">
+                      <Input 
+                        type={showNewPassword ? "text" : "password"} 
+                        value={securityData.newPassword} 
+                        onChange={(e) => setSecurityData({...securityData, newPassword: e.target.value})}
+                        required
+                        className="pr-10"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowNewPassword((prev) => !prev)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-[#A51C30] transition-colors"
+                        aria-label={showNewPassword ? 'Hide password' : 'Show password'}
+                      >
+                        {showNewPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      </button>
+                    </div>
                   </div>
                   <div className="space-y-2">
                     <label className="text-sm font-medium text-gray-700">Confirm New Password</label>
-                    <Input 
-                      type="password" 
-                      value={securityData.confirmPassword} 
-                      onChange={(e) => setSecurityData({...securityData, confirmPassword: e.target.value})}
-                      required
-                    />
+                    <div className="relative">
+                      <Input 
+                        type={showConfirmPassword ? "text" : "password"} 
+                        value={securityData.confirmPassword} 
+                        onChange={(e) => setSecurityData({...securityData, confirmPassword: e.target.value})}
+                        required
+                        className="pr-10"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowConfirmPassword((prev) => !prev)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-[#A51C30] transition-colors"
+                        aria-label={showConfirmPassword ? 'Hide password' : 'Show password'}
+                      >
+                        {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      </button>
+                    </div>
                   </div>
                   <div className="flex justify-end pt-2">
                     <Button type="submit" isLoading={isLoading}>Update Password</Button>
@@ -265,20 +299,6 @@ export default function Settings() {
                 </form>
               </div>
 
-              <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h2 className="text-lg font-semibold text-gray-900">Two-Factor Authentication</h2>
-                    <p className="text-sm text-gray-500 mt-1">Add an extra layer of security to your account.</p>
-                  </div>
-                  <Button 
-                    variant={securityData.is2FAEnabled ? "primary" : "secondary"} 
-                    onClick={toggle2FA}
-                  >
-                    {securityData.is2FAEnabled ? "Disable 2FA" : "Enable 2FA"}
-                  </Button>
-                </div>
-              </div>
             </div>
           )}
 

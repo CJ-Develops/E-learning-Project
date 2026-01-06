@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Hash;
 use App\Models\User;
 
 class AuthController extends Controller
@@ -50,15 +51,17 @@ class AuthController extends Controller
             'name' => 'required|string',
             'email' => 'required|email|unique:users,email', // Check if email already exists
             'password' => 'required|string|min:6',
-            'role' => 'required|string'
+            'role' => 'required|integer|in:0,1' // Only student (0) or teacher (1)
         ]);
+
+        $role = (int) $fields['role'];
 
         // 2. Create the User
         $user = User::create([
             'name' => $fields['name'],
             'email' => $fields['email'],
             'password' => bcrypt($fields['password']),
-            'role' => $fields['role']
+            'role' => $role
         ]);
 
         // 3. Create a Token (Log them in immediately)
@@ -71,6 +74,47 @@ class AuthController extends Controller
         ], 201);
     }
 
+    public function updateProfile(Request $request)
+    {
+        $user = $request->user();
+
+        $validated = $request->validate([
+            'name' => 'required|string|max:255',
+            'bio' => 'nullable|string|max:1000',
+        ]);
+
+        $user->update($validated);
+
+        return response()->json([
+            'message' => 'Profile updated',
+            'user' => $user,
+        ]);
+    }
+
+    public function changePassword(Request $request)
+    {
+        $user = $request->user();
+
+        $validated = $request->validate([
+            'current_password' => 'required|string',
+            'new_password' => 'required|string|min:8|confirmed',
+        ]);
+
+        if (!Hash::check($validated['current_password'], $user->password)) {
+            return response()->json([
+                'message' => 'The provided password does not match your current records',
+            ], 422);
+        }
+
+        $user->update([
+            'password' => Hash::make($validated['new_password']),
+        ]);
+
+        return response()->json([
+            'message' => 'Password updated successfully',
+        ]);
+    }
+
 
 
 
@@ -79,6 +123,3 @@ class AuthController extends Controller
 
 
 }
-
-
-

@@ -1,11 +1,95 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Button } from '../../components/ui/Button';
 import { ROLES } from '../../lib/utils';
-import { Clock, BookOpen, Users, TrendingUp, GraduationCap, AlertCircle, PlayCircle, CheckCircle, ShieldCheck, Star } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Clock, BookOpen, Users, TrendingUp, GraduationCap, AlertCircle, PlayCircle, CheckCircle, ShieldCheck, ClipboardList, Activity } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
+import api from '../../lib/apiClient';
+import StudentLibrary from './StudentLibrary';
 
 export default function DashboardHome() {
   const user = JSON.parse(localStorage.getItem('user')) || { role: ROLES.STUDENT, name: 'Guest' };
+  const navigate = useNavigate();
+
+  const [dashboardStats, setDashboardStats] = useState({
+    total_scholars: 0,
+    active_curriculums: 0,
+    faculty_members: 0,
+    recent_courses: [],
+  });
+  const [loadingStats, setLoadingStats] = useState(false);
+
+  const [teacherData, setTeacherData] = useState({
+    stats: { enrolled_count: 0, pending_eval_count: 0 },
+    recent_graded: [],
+    action_items: { ungraded_count: 0 },
+    at_risk_students: [],
+    activity_feed: [],
+  });
+  const [loadingTeacher, setLoadingTeacher] = useState(false);
+
+  useEffect(() => {
+    if (user.role !== ROLES.ADMIN) return;
+
+    const fetchDashboardStats = async () => {
+      setLoadingStats(true);
+      try {
+        const { data } = await api.get('/admin/dashboard-stats');
+        setDashboardStats({
+          total_scholars: data?.total_scholars ?? 0,
+          active_curriculums: data?.active_curriculums ?? 0,
+          faculty_members: data?.faculty_members ?? 0,
+          recent_courses: data?.recent_courses ?? [],
+        });
+      } catch (error) {
+        console.error('Error fetching dashboard stats:', error);
+      } finally {
+        setLoadingStats(false);
+      }
+    };
+
+    fetchDashboardStats();
+  }, [user.role]);
+
+  useEffect(() => {
+    if (user.role !== ROLES.TEACHER) return;
+
+    const fetchTeacherDashboard = async () => {
+      setLoadingTeacher(true);
+      try {
+        const { data } = await api.get('/teacher/dashboard');
+        setTeacherData({
+          stats: data?.stats ?? { enrolled_count: 0, pending_eval_count: 0 },
+          recent_graded: data?.recent_graded ?? [],
+          action_items: data?.action_items ?? { ungraded_count: 0 },
+          at_risk_students: data?.at_risk_students ?? [],
+          activity_feed: data?.activity_feed ?? [],
+        });
+      } catch (error) {
+        console.error('Error fetching teacher dashboard:', error);
+      } finally {
+        setLoadingTeacher(false);
+      }
+    };
+
+    fetchTeacherDashboard();
+  }, [user.role]);
+
+  const formatNumber = (value) => Number(value ?? 0).toLocaleString();
+
+  const formatTimeAgo = (timestamp) => {
+    const created = new Date(timestamp);
+    if (Number.isNaN(created.getTime())) return '';
+
+    const seconds = Math.floor((Date.now() - created.getTime()) / 1000);
+    const minutes = Math.floor(seconds / 60);
+    const hours = Math.floor(minutes / 60);
+    const days = Math.floor(hours / 24);
+
+    if (days > 0) return `${days} day${days === 1 ? '' : 's'} ago`;
+    if (hours > 0) return `${hours} hour${hours === 1 ? '' : 's'} ago`;
+    if (minutes > 0) return `${minutes} minute${minutes === 1 ? '' : 's'} ago`;
+    return 'Just now';
+  };
 
   // --- COMMON HEADER COMPONENT ---
   const DashboardHeader = ({ title, subtitle }) => (
@@ -25,9 +109,9 @@ export default function DashboardHome() {
         />
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <StatsCard icon={<Users className="h-6 w-6 text-[#A51C30]" />} label="Total Scholars" value="1,234" color="bg-[#A51C30]/5" />
-          <StatsCard icon={<BookOpen className="h-6 w-6 text-[#A51C30]" />} label="Active Curriculums" value="42" color="bg-[#A51C30]/5" />
-          <StatsCard icon={<GraduationCap className="h-6 w-6 text-[#F2A900]" />} label="Faculty Members" value="89" color="bg-[#F2A900]/5" />
+          <StatsCard icon={<Users className="h-6 w-6 text-[#A51C30]" />} label="Total Scholars" value={formatNumber(dashboardStats.total_scholars)} color="bg-[#A51C30]/5" loading={loadingStats} />
+          <StatsCard icon={<BookOpen className="h-6 w-6 text-[#A51C30]" />} label="Active Curriculums" value={formatNumber(dashboardStats.active_curriculums)} color="bg-[#A51C30]/5" loading={loadingStats} />
+          <StatsCard icon={<GraduationCap className="h-6 w-6 text-[#F2A900]" />} label="Faculty Members" value={formatNumber(dashboardStats.faculty_members)} color="bg-[#F2A900]/5" loading={loadingStats} />
         </div>
 
         <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6 overflow-hidden relative">
@@ -38,14 +122,23 @@ export default function DashboardHome() {
             <TrendingUp className="h-5 w-5 text-[#A51C30]" /> Recent Institutional Activity
           </h2>
           <div className="space-y-4">
-            {[1, 2, 3].map((i) => (
-              <div key={i} className="flex items-center gap-4 p-4 hover:bg-gray-50 rounded-lg transition-all border-b border-gray-100 last:border-0">
+            {loadingStats && (
+              <div className="p-4 text-sm text-gray-400 font-serif">Loading recent courses...</div>
+            )}
+            {!loadingStats && dashboardStats.recent_courses.length === 0 && (
+              <div className="p-4 text-sm text-gray-500 font-serif italic">No recent courses found.</div>
+            )}
+            {!loadingStats && dashboardStats.recent_courses.map((course) => (
+              <div key={course.id} className="flex items-center gap-4 p-4 hover:bg-gray-50 rounded-lg transition-all border-b border-gray-100 last:border-0">
                 <div className="h-10 w-10 rounded-full bg-[#A51C30]/10 flex items-center justify-center text-[#A51C30]">
                   <CheckCircle className="h-5 w-5" />
                 </div>
                 <div>
-                  <p className="text-sm font-serif font-bold text-gray-900">New Scholar Matriculation</p>
-                  <p className="text-xs text-gray-500 font-serif">2 minutes ago • ID: ATH-2026-{1000 + i}</p>
+                  <p className="text-sm font-serif font-bold text-gray-900">New Course Added: {course.title}</p>
+                  <p className="text-xs text-gray-500 font-serif">
+                    {formatTimeAgo(course.created_at)}
+                    {course.teacher_name ? ` · ${course.teacher_name}` : ''}
+                  </p>
                 </div>
               </div>
             ))}
@@ -65,113 +158,96 @@ export default function DashboardHome() {
         />
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <StatsCard icon={<Users className="h-6 w-6 text-[#A51C30]" />} label="Enrolled Scholars" value="156" color="bg-[#A51C30]/5" />
-          <StatsCard icon={<AlertCircle className="h-6 w-6 text-orange-600" />} label="Pending Evaluations" value="12" color="bg-orange-50" />
-          <StatsCard icon={<Star className="h-6 w-6 text-[#F2A900]" />} label="Instructional Rating" value="4.9/5.0" color="bg-[#F2A900]/5" />
+          <StatsCard icon={<Users className="h-6 w-6 text-[#A51C30]" />} label="Enrolled Scholars" value={formatNumber(teacherData.stats.enrolled_count)} color="bg-[#A51C30]/5" loading={loadingTeacher} />
+          <StatsCard icon={<AlertCircle className="h-6 w-6 text-orange-600" />} label="Pending Evaluations" value={formatNumber(teacherData.stats.pending_eval_count)} color="bg-orange-50" loading={loadingTeacher} />
         </div>
 
         <div className="grid lg:grid-cols-2 gap-8">
-          <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-8">
-            <h2 className="text-xl font-serif font-bold text-gray-900 mb-6">Awaiting Evaluation</h2>
-            <div className="space-y-4">
-              {[1, 2, 3].map((i) => (
-                <div key={i} className="flex items-center justify-between p-4 bg-gray-50 rounded-xl border border-gray-100 hover:border-[#A51C30]/30 transition-colors">
-                  <div className="flex items-center gap-4">
-                    <div className="h-10 w-10 rounded-lg bg-[#A51C30] text-white flex items-center justify-center font-serif font-bold text-sm">
-                      {i}
-                    </div>
-                    <div>
-                      <p className="text-sm font-serif font-bold text-gray-900">Thesis Defense Draft</p>
-                      <p className="text-xs text-gray-500 italic">Submitted by Scholar #{i + 1200}</p>
+          <div className="space-y-6">
+            <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-3">
+                  <ClipboardList className="h-5 w-5 text-[#A51C30]" />
+                  <h2 className="text-lg font-serif font-bold text-gray-900">Action Center</h2>
+                </div>
+                <Button 
+                  size="sm" 
+                  className="bg-[#A51C30] hover:bg-[#851626] text-white"
+                  onClick={() => navigate('/dashboard/assignments/grading')}
+                  disabled={loadingTeacher}
+                >
+                  Go to Evaluations
+                </Button>
+              </div>
+              <p className="text-sm text-gray-600">
+                {loadingTeacher ? 'Loading...' : `${formatNumber(teacherData.action_items.ungraded_count)} assignments to grade`}
+              </p>
+            </div>
+
+            <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
+              <div className="flex items-center gap-3 mb-4">
+                <Activity className="h-5 w-5 text-[#A51C30]" />
+                <h2 className="text-lg font-serif font-bold text-gray-900">Recent Grading History</h2>
+              </div>
+              {loadingTeacher && <p className="text-sm text-gray-500">Loading...</p>}
+              {!loadingTeacher && teacherData.recent_graded.length === 0 && (
+                <p className="text-sm text-gray-500 italic">No graded submissions yet.</p>
+              )}
+              <div className="space-y-4">
+                {teacherData.recent_graded.map((item, idx) => (
+                  <div key={item.id || idx} className="flex items-start justify-between p-4 bg-gray-50 rounded-xl border border-gray-100">
+                    <div className="flex items-start gap-3">
+                      <div className="h-8 w-8 rounded-lg bg-[#A51C30] text-white flex items-center justify-center font-bold text-sm">
+                        {idx + 1}
+                      </div>
+                      <div>
+                        <p className="text-sm font-serif font-bold text-gray-900">{item.assignment_title || 'Assignment'}</p>
+                        <p className="text-xs text-gray-500">Student: {item.student_name || 'N/A'}</p>
+                        <p className="text-xs text-gray-500">Grade: {item.grade ?? '--'}</p>
+                        <p className="text-[11px] text-gray-400 mt-1">{formatTimeAgo(item.graded_at)}</p>
+                      </div>
                     </div>
                   </div>
-                  <Button size="sm" className="bg-[#A51C30] hover:bg-[#851626] text-white font-serif">Evaluate</Button>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
           </div>
 
-          <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-8 flex flex-col items-center justify-center text-center">
-            <div className="p-4 bg-gray-50 rounded-full mb-4">
-               <Clock className="h-10 w-10 text-gray-300" />
+          <div className="space-y-6">
+            <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
+              <div className="flex items-center gap-3 mb-4">
+                <Activity className="h-5 w-5 text-[#A51C30]" />
+                <h2 className="text-lg font-serif font-bold text-gray-900">Recent Activity Feed</h2>
+              </div>
+              {loadingTeacher && <p className="text-sm text-gray-500">Loading...</p>}
+              {!loadingTeacher && teacherData.activity_feed.length === 0 && (
+                <p className="text-sm text-gray-500 italic">No recent activity.</p>
+              )}
+              <div className="space-y-3">
+                {teacherData.activity_feed.map((event) => (
+                  <div key={event.id} className="flex items-start gap-3 p-3 rounded-lg border border-gray-100 bg-gray-50">
+                    <div className="h-2 w-2 rounded-full bg-[#A51C30] mt-2" />
+                    <div>
+                      <p className="text-sm font-serif font-bold text-gray-900">{event.title}</p>
+                      <p className="text-xs text-gray-500">{formatTimeAgo(event.created_at)}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
-            <h3 className="text-lg font-serif font-bold text-gray-900">Lecture Schedule</h3>
-            <p className="text-gray-400 font-serif italic max-w-[200px]">No live sessions currently scheduled for today.</p>
           </div>
         </div>
       </div>
     );
   }
 
-// --- STUDENT DASHBOARD ---
-  const myCourses = [
-    { id: 7, title: "Advanced PHP & MySQL", image: "https://www.onlineconceptclasses.com/wp-content/uploads/2023/05/pexels-tima-miroshnichenko-5380664-scaled.jpg.webp", progress: 70, timeLeft: "2h 45m left", modules: "12 Modules" },
-    { id: 8, title: "React Fundamentals", image: "https://images.unsplash.com/photo-1633356122544-f134324a6cee?auto=format&fit=crop&q=80&w=600", progress: 35, timeLeft: "5h 10m left", modules: "8 Modules" },
-    { id: 9, title: "UI/UX Design Principles", image: "https://www.andacademy.com/resources/wp-content/uploads/2024/02/image20.jpg", progress: 10, timeLeft: "8h 20m left", modules: "15 Modules" }
-  ];
-
-  return (
-    <div className="space-y-8 animate-page-enter">
-      <DashboardHeader 
-        title={`Welcome, Scholar ${user.name.split(' ')[0]}`} 
-        subtitle="Honor and Excellence. Continue your academic journey." 
-      />
-
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-        {myCourses.map((course) => (
-          <div key={course.id} className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden hover:shadow-xl transition-all duration-300 flex flex-col group">
-            {/* Image Section - No Red Tint */}
-            <div className="h-48 relative overflow-hidden">
-              <img src={course.image} alt={course.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
-              <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/40 backdrop-blur-[2px]">
-                 <Link to={`/dashboard/courses/${course.id}/learn`}>
-                    <PlayCircle className="h-16 w-16 text-[#F2A900] drop-shadow-2xl" />
-                 </Link>
-              </div>
-            </div>
-
-            <div className="p-6 flex flex-col flex-1">
-              <div className="flex justify-between items-center mb-4">
-                <span className="bg-[#A51C30]/10 text-[#A51C30] text-[10px] font-serif font-bold uppercase tracking-widest px-3 py-1 rounded-full border border-[#A51C30]/20">
-                  {course.modules}
-                </span>
-                <span className="text-gray-400 text-xs font-serif flex items-center gap-1">
-                  <Clock className="h-3 w-3" /> {course.timeLeft}
-                </span>
-              </div>
-
-              <h3 className="font-serif font-bold text-gray-900 text-xl mb-6 line-clamp-1">{course.title}</h3>
-
-              <div className="mt-auto space-y-6">
-                <div className="space-y-3">
-                  <div className="flex justify-between items-end">
-                    <span className="text-gray-400 font-serif italic text-sm">Course Progress</span>
-                    <span className="text-[#A51C30] font-serif font-bold">{course.progress}%</span>
-                  </div>
-                  {/* Crimson to Gold Progress Bar */}
-                  <div className="h-1.5 w-full bg-gray-100 rounded-full overflow-hidden shadow-inner">
-                    <div 
-                      className="h-full bg-[#A51C30] rounded-full transition-all duration-1000 ease-in-out"
-                      style={{ width: `${course.progress}%` }}
-                    />
-                  </div>
-                </div>
-
-                <Link to={`/dashboard/courses/${course.id}/learn`} className="block">
-                  <Button className="w-full bg-white text-[#A51C30] border-2 border-[#A51C30] hover:bg-[#A51C30] hover:text-white font-serif font-bold py-6 rounded-xl transition-all transform hover:-translate-y-1 shadow-sm">
-                    Continue Learning
-                  </Button>
-                </Link>
-              </div>
-            </div>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
+  // --- STUDENT DASHBOARD ---
+  if (user.role === ROLES.STUDENT) {
+    return <StudentLibrary />;
+  }
 }
 
-function StatsCard({ icon, label, value, color }) {
+function StatsCard({ icon, label, value, color, loading = false }) {
   return (
     <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm flex items-center gap-5 hover:shadow-md transition-shadow">
       <div className={`h-14 w-14 rounded-2xl ${color} flex items-center justify-center transform -rotate-3 hover:rotate-0 transition-transform`}>
@@ -179,7 +255,9 @@ function StatsCard({ icon, label, value, color }) {
       </div>
       <div>
         <p className="text-xs text-gray-400 font-serif font-bold uppercase tracking-widest">{label}</p>
-        <p className="text-3xl font-serif font-bold text-gray-900 tracking-tight">{value}</p>
+        <p className="text-3xl font-serif font-bold text-gray-900 tracking-tight">
+          {loading ? '...' : value}
+        </p>
       </div>
     </div>
   );

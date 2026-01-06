@@ -21,6 +21,7 @@ class User extends Authenticatable
     protected $fillable = [
         'name',
         'email',
+        'bio',
         'password',
         'role',
     ];
@@ -46,5 +47,28 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
         ];
+    }
+
+    public function submissions()
+    {
+        return $this->hasMany(Submission::class, 'student_id');
+    }
+
+    public function enrollments()
+    {
+        return $this->hasMany(Enrollment::class);
+    }
+
+    public function courses()
+    {
+        return $this->belongsToMany(Course::class, 'enrollments')
+            ->withPivot(['joined_at', 'progress_percent'])
+            ->withTimestamps();
+    }
+
+    public function teachingCourses()
+    {
+        return $this->belongsToMany(Course::class, 'course_teacher', 'teacher_id', 'course_id')
+            ->withTimestamps();
     }
 }

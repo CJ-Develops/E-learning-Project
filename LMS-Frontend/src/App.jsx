@@ -10,9 +10,15 @@ import DashboardLayout from './layouts/DashboardLayout';
 import DashboardHome from './pages/dashboard/DashboardHome';
 import Courses from './pages/dashboard/Courses';
 import CoursePlayer from './pages/dashboard/CoursePlayer';
+import CourseLessons from './pages/dashboard/CourseLessons';
+import ManageAssignments from './pages/dashboard/ManageAssignments';
+import GradingHub from './pages/dashboard/GradingHub';
+import StudentLibrary from './pages/dashboard/StudentLibrary';
+import StudentCourse from './pages/dashboard/StudentCourse';
+import StudentAssignments from './pages/dashboard/StudentAssignments';
+import StudentGrades from './pages/dashboard/StudentGrades';
 import UsersList from './pages/dashboard/Users';
 import Grading from './pages/dashboard/Grading';
-import Assignments from './pages/dashboard/Assignments';
 import Settings from './pages/dashboard/Settings';
 import Notifications from './pages/dashboard/Notifications';
 import ScrollToTop from './components/ScrollToTop';
@@ -34,10 +40,16 @@ function App() {
             <Route path="/dashboard" element={<DashboardLayout />}>
               <Route index element={<DashboardHome />} />
               <Route path="courses" element={<Courses />} />
+              <Route path="courses/:courseId/lessons" element={<CourseLessons />} />
               <Route path="courses/:courseId/learn" element={<CoursePlayer />} />
+              <Route path="assignments/manage" element={<ManageAssignments />} />
+              <Route path="assignments/grading" element={<GradingHub />} />
+              <Route path="student/library" element={<StudentLibrary />} />
+              <Route path="student/grades" element={<StudentGrades />} />
+              <Route path="student/courses/:courseId" element={<StudentCourse />} />
+              <Route path="assignments" element={<StudentAssignments />} />
               <Route path="users" element={<UsersList />} />
               <Route path="grading" element={<Grading />} />
-              <Route path="assignments" element={<Assignments />} />
               <Route path="settings" element={<Settings />} />
               <Route path="notifications" element={<Notifications />} />
             </Route>
