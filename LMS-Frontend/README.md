@@ -17,7 +17,7 @@ Welcome! 🎉 This is our **E-Learning Platform** project. Follow the instructio
    ```bash
    npm install
 
-3. **Install Frontend Dependencies**  
+3. **Run locally**  
    ```bash
    npm run dev
 
