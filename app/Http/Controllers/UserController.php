@@ -4,7 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\User;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Hash; // <--- IMPORTANT: Add this line
+use Illuminate\Support\Facades\Hash; 
 
 class UserController extends Controller
 {
@@ -20,24 +20,24 @@ class UserController extends Controller
         );
     }
 
-    // --- ADD THIS NEW METHOD ---
+    
     public function store(Request $request)
     {
         // 1. Validate the incoming data
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'email' => 'required|email|unique:users,email',
-            'password' => 'required|string|min:6', // Password is required for new users
+            'password' => 'required|string|min:6', 
             'role' => 'required|integer'
         ]);
 
-        // 2. Hash the password before saving
+       
         $validated['password'] = Hash::make($validated['password']);
 
         // 3. Create the user
         $user = User::create($validated);
 
-        // 4. Return the new user so the frontend can display it immediately
+        
         return response()->json(['message' => 'User created successfully', 'user' => $user], 201);
     }
     // ---------------------------

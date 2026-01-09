@@ -11,7 +11,7 @@ use Illuminate\Support\Facades\Storage;
 
 class StudentCourseController extends Controller
 {
-    // GET /api/student/courses
+    
     public function index(Request $request)
     {
         $studentId = $request->user()->id;
@@ -49,7 +49,7 @@ class StudentCourseController extends Controller
         return response()->json($courses);
     }
 
-    // GET /api/student/courses/{course}
+   
     public function show(Request $request, Course $course)
     {
         $studentId = $request->user()->id;
@@ -68,7 +68,7 @@ class StudentCourseController extends Controller
         return response()->json($course);
     }
 
-    // GET /api/student/assignments
+    
     public function assignments(Request $request)
     {
         $studentId = $request->user()->id;
@@ -94,7 +94,7 @@ class StudentCourseController extends Controller
         return response()->json($assignments);
     }
 
-    // GET /api/student/grades
+    
     public function grades(Request $request)
     {
         $studentId = $request->user()->id;
@@ -137,7 +137,7 @@ class StudentCourseController extends Controller
         return response()->json($grouped);
     }
 
-    // POST /api/assignments/{assignment}/submit
+    
     public function submit(Request $request, Assignment $assignment)
     {
         $studentId = $request->user()->id;

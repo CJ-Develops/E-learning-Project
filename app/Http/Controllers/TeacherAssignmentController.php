@@ -12,27 +12,23 @@ use Illuminate\Support\Facades\Storage;
 
 class TeacherAssignmentController extends Controller
 {
-    // GET /api/teacher/assignments
+   
     public function index(Request $request)
     {
         $teacherId = $request->user()->id;
 
         $assignments = Assignment::with('course')
-            ->whereHas('course', function ($q) use ($teacherId) {
-                $q->whereHas('teachers', function ($teacherQuery) use ($teacherId) {
-                    $teacherQuery->where('users.id', $teacherId);
-                });
-            })
+            ->where('created_by', $teacherId)
             ->latest()
             ->get();
 
         return response()->json($assignments);
     }
 
-    // POST /api/courses/{course}/assignments
+    
     public function store(Request $request, Course $course)
     {
-        // Ensure the teacher owns this course
+        
         $isAssignedTeacher = $course->teachers()
             ->where('users.id', $request->user()->id)
             ->exists();
@@ -50,6 +46,7 @@ class TeacherAssignmentController extends Controller
         $assignment = $course->assignments()->create([
             ...$data,
             'points_possible' => $data['points_possible'] ?? 100,
+            'created_by' => $request->user()->id,
         ]);
 
         $course->students()
@@ -63,14 +60,10 @@ class TeacherAssignmentController extends Controller
         return response()->json(['assignment' => $assignment], 201);
     }
 
-    // PUT /api/assignments/{assignment}
+    
     public function update(Request $request, Assignment $assignment)
     {
-        $isAssignedTeacher = $assignment->course
-            ->teachers()
-            ->where('users.id', $request->user()->id)
-            ->exists();
-        if (!$isAssignedTeacher) {
+        if ((int) $assignment->created_by !== (int) $request->user()->id) {
             abort(403, 'Unauthorized');
         }
 
@@ -91,14 +84,10 @@ class TeacherAssignmentController extends Controller
         return response()->json(['assignment' => $assignment]);
     }
 
-    // DELETE /api/assignments/{assignment}
+    
     public function destroy(Request $request, Assignment $assignment)
     {
-        $isAssignedTeacher = $assignment->course
-            ->teachers()
-            ->where('users.id', $request->user()->id)
-            ->exists();
-        if (!$isAssignedTeacher) {
+        if ((int) $assignment->created_by !== (int) $request->user()->id) {
             abort(403, 'Unauthorized');
         }
 
@@ -107,16 +96,14 @@ class TeacherAssignmentController extends Controller
         return response()->json(['message' => 'Assignment deleted']);
     }
 
-    // GET /api/teacher/submissions
+    
     public function submissions(Request $request)
     {
         $teacherId = $request->user()->id;
 
         $submissions = Submission::with(['student', 'assignment'])
-            ->whereHas('assignment.course', function ($q) use ($teacherId) {
-                $q->whereHas('teachers', function ($teacherQuery) use ($teacherId) {
-                    $teacherQuery->where('users.id', $teacherId);
-                });
+            ->whereHas('assignment', function ($q) use ($teacherId) {
+                $q->where('created_by', $teacherId);
             })
             ->latest()
             ->get();
@@ -124,17 +111,12 @@ class TeacherAssignmentController extends Controller
         return response()->json($submissions);
     }
 
-    // POST /api/submissions/{id}/grade
+    
     public function grade(Request $request, $id)
     {
         $submission = Submission::with('assignment.course')->findOrFail($id);
 
-        // Only the course's teacher can grade
-        $isAssignedTeacher = $submission->assignment->course
-            ->teachers()
-            ->where('users.id', $request->user()->id)
-            ->exists();
-        if (!$isAssignedTeacher) {
+        if ((int) $submission->assignment->created_by !== (int) $request->user()->id) {
             abort(403, 'Unauthorized');
         }
 

@@ -9,12 +9,12 @@ class AdminDashboardController extends Controller
 {
     public function index()
     {
-        // Aggregate headline stats
+        
         $totalScholars = User::where('role', 0)->count();
         $facultyMembers = User::where('role', 1)->count();
         $activeCurriculums = Course::count();
 
-        // Fetch latest courses with teacher name attached
+       
         $recentCourses = Course::with(['teachers:id,name'])
             ->latest()
             ->take(5)

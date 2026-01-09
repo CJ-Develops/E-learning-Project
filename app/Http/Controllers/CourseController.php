@@ -26,7 +26,7 @@ class CourseController extends Controller
     public function store(Request $request)
     {
         $user = $request->user();
-        // Only admins can create courses
+        // Admins can create the course
         if ((int) $user->role !== 2) {
             abort(403, 'Only admins can create courses');
         }
@@ -54,7 +54,7 @@ class CourseController extends Controller
     {
         $course = Course::findOrFail($id);
         $user = $request->user();
-        // Only admins can update course metadata
+        
         if ((int) $user->role !== 2) {
             abort(403, 'Only admins can update courses');
         }
@@ -81,7 +81,7 @@ class CourseController extends Controller
     {
         $course = Course::findOrFail($id);
         $user = request()->user();
-        // Only admins can delete courses
+        // Admins can delete courses
         if ((int) $user->role !== 2) {
             abort(403, 'Only admins can delete courses');
         }

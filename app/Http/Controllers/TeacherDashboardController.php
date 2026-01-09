@@ -12,20 +12,18 @@ class TeacherDashboardController extends Controller
 {
     public function index(Request $request)
     {
-        $teacherId = $request->user()->id;
+        $teacher = $request->user();
+        $courseIds = $teacher->teachingCourses()
+            ->pluck('courses.id')
+            ->unique()
+            ->values();
 
-        $teacherAssignmentIds = Assignment::whereHas('course', function ($q) use ($teacherId) {
-            $q->whereHas('teachers', function ($teacherQuery) use ($teacherId) {
-                $teacherQuery->where('users.id', $teacherId);
-            });
-        })->pluck('id');
+        $teacherAssignmentIds = Assignment::where('created_by', $teacher->id)->pluck('id');
 
         $stats = [
-            'enrolled_count' => Enrollment::whereHas('course', function ($q) use ($teacherId) {
-                $q->whereHas('teachers', function ($teacherQuery) use ($teacherId) {
-                    $teacherQuery->where('users.id', $teacherId);
-                });
-            })->count(),
+            'enrolled_count' => Enrollment::whereIn('course_id', $courseIds)
+                ->distinct('user_id')
+                ->count('user_id'),
             'pending_eval_count' => Submission::whereIn('assignment_id', $teacherAssignmentIds)
                 ->where('status', 'pending')
                 ->count(),
@@ -56,32 +54,30 @@ class TeacherDashboardController extends Controller
             'ungraded_count' => $stats['pending_eval_count'],
         ];
 
-        $atRiskStudents = $this->getAtRiskStudents($teacherId, $teacherAssignmentIds);
+        $atRiskStudents = $this->getAtRiskStudents($courseIds, $teacherAssignmentIds);
 
-        $activityFeed = $this->getActivityFeed($teacherId);
+        $activityFeed = $this->getActivityFeed($courseIds, $teacherAssignmentIds);
 
-        return response()->json([
+        $response = [
             'stats' => $stats,
             'recent_graded' => $recentGraded,
             'action_items' => $actionItems,
             'at_risk_students' => $atRiskStudents,
             'activity_feed' => $activityFeed,
-        ]);
+        ];
+
+        return response()->json($response);
     }
 
-    protected function getAtRiskStudents(int $teacherId, Collection $assignmentIds): Collection
+    protected function getAtRiskStudents(Collection $courseIds, Collection $assignmentIds): Collection
     {
         $assignmentsCount = $assignmentIds->count();
-        if ($assignmentsCount === 0) {
+        if ($assignmentsCount === 0 || $courseIds->isEmpty()) {
             return collect();
         }
 
         $students = Enrollment::with('student:id,name')
-            ->whereHas('course', function ($q) use ($teacherId) {
-                $q->whereHas('teachers', function ($teacherQuery) use ($teacherId) {
-                    $teacherQuery->where('users.id', $teacherId);
-                });
-            })
+            ->whereIn('course_id', $courseIds)
             ->get()
             ->groupBy('user_id');
 
@@ -101,20 +97,20 @@ class TeacherDashboardController extends Controller
             ->values();
     }
 
-    protected function getActivityFeed(int $teacherId): Collection
+    protected function getActivityFeed(Collection $courseIds, Collection $assignmentIds): Collection
     {
+        if ($courseIds->isEmpty()) {
+            return collect();
+        }
+
         $recentSubmissions = Submission::with([
                 'student:id,name',
                 'assignment:id,title,course_id',
                 'assignment.course:id,title',
             ])
-            ->whereHas('assignment.course', function ($q) use ($teacherId) {
-                $q->whereHas('teachers', function ($teacherQuery) use ($teacherId) {
-                    $teacherQuery->where('users.id', $teacherId);
-                });
-            })
+            ->whereIn('assignment_id', $assignmentIds)
             ->latest()
-            ->take(5)
+            ->take(10)
             ->get()
             ->map(function (Submission $submission) {
                 return [
@@ -129,13 +125,9 @@ class TeacherDashboardController extends Controller
                 'student:id,name',
                 'course:id,title',
             ])
-            ->whereHas('course', function ($q) use ($teacherId) {
-                $q->whereHas('teachers', function ($teacherQuery) use ($teacherId) {
-                    $teacherQuery->where('users.id', $teacherId);
-                });
-            })
+            ->whereIn('course_id', $courseIds)
             ->latest()
-            ->take(5)
+            ->take(10)
             ->get()
             ->map(function (Enrollment $enrollment) {
                 return [
@@ -149,6 +141,7 @@ class TeacherDashboardController extends Controller
         return $recentSubmissions
             ->merge($recentEnrollments)
             ->sortByDesc('created_at')
+            ->take(5)
             ->values();
     }
 }

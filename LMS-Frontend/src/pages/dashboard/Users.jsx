@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+ï»¿import React, { useState, useEffect } from 'react';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
 import { Modal } from '../../components/ui/Modal';
@@ -71,7 +71,7 @@ export default function UsersList() {
         const response = await api.put(`${API_URL}/${editingUser.id}`, userData);
         setUsers(users.map((u) => (u.id === editingUser.id ? response.data.user : u)));
       } else {
-        const response = await api.post(API_URL, { ...userData, role: ROLES.STUDENT });
+        const response = await api.post(API_URL, userData);
         setUsers([response.data.user, ...users]);
       }
       setIsModalOpen(false);
@@ -258,7 +258,7 @@ export default function UsersList() {
                                 ))}
                               </select>
                             ) : (
-                              <span className="text-gray-400 text-sm">—</span>
+                              <span className="text-gray-400 text-sm">ï¿½</span>
                             )}
                           </td>
                           <td className="px-4 py-3">
@@ -278,7 +278,7 @@ export default function UsersList() {
                                 ))}
                               </select>
                             ) : (
-                              <span className="text-gray-400 text-sm">—</span>
+                              <span className="text-gray-400 text-sm">ï¿½</span>
                             )}
                           </td>
                         </>
@@ -320,16 +320,18 @@ export default function UsersList() {
               <Input name="password" type="password" required placeholder="******" />
             </div>
           )}
-          {isEditMode && (
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Role</label>
-              <select name="role" defaultValue={editingUser?.role || ROLES.STUDENT} className="w-full border p-2 rounded">
-                <option value={ROLES.STUDENT}>Student</option>
-                <option value={ROLES.TEACHER}>Teacher</option>
-                <option value={ROLES.ADMIN}>Admin</option>
-              </select>
-            </div>
-          )}
+          <div className="space-y-2">
+            <label className="text-sm font-medium">Role</label>
+            <select
+              name="role"
+              defaultValue={editingUser?.role || ROLES.STUDENT}
+              className="w-full border p-2 rounded"
+            >
+              <option value={ROLES.STUDENT}>Student</option>
+              <option value={ROLES.TEACHER}>Teacher</option>
+              <option value={ROLES.ADMIN}>Admin</option>
+            </select>
+          </div>
           <div className="flex justify-end gap-3 pt-4">
             <Button type="button" variant="secondary" onClick={() => setIsModalOpen(false)}>Cancel</Button>
             <Button type="submit">{isEditMode ? 'Save Changes' : 'Add User'}</Button>
@@ -339,3 +341,5 @@ export default function UsersList() {
     </div>
   );
 }
+
+

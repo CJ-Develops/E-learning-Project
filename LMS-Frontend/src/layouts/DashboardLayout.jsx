@@ -1,22 +1,20 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
-import { 
-  LayoutDashboard, 
-  BookOpen, 
-  Users, 
-  Settings, 
-  LogOut, 
-  GraduationCap, 
-  FileText, 
+import {
+  LayoutDashboard,
+  BookOpen,
+  Users,
+  Settings,
+  LogOut,
+  GraduationCap,
+  FileText,
   Menu,
   X,
-  ChevronDown,
   User,
-  Check,
   ShieldCheck,
   BarChart3
 } from 'lucide-react';
-import { cn, getRoleName, ROLES, getRoleId } from '../lib/utils';
+import { cn, getRoleName, ROLES } from '../lib/utils';
 import NotificationBell from '../components/notifications/NotificationBell';
 
 export default function DashboardLayout() {
@@ -38,14 +36,6 @@ export default function DashboardLayout() {
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
-
-  const handleSwitchRole = (newRoleName) => {
-    const newRoleId = getRoleId(newRoleName);
-    const updatedUser = { ...user, role: newRoleId, name: `Demo ${newRoleName}` };
-    localStorage.setItem('user', JSON.stringify(updatedUser));
-    setUser(updatedUser);
-    navigate(newRoleId === ROLES.ADMIN ? '/dashboard/users' : newRoleId === ROLES.TEACHER ? '/dashboard/grading' : '/dashboard');
-  };
 
   const handleLogout = () => {
     localStorage.removeItem('user');
@@ -189,24 +179,6 @@ return (
           </div>
 
           <div className="flex items-center gap-8">
-            {/* Role Switcher */}
-            <div className="relative group hidden sm:block">
-              <button className="flex items-center gap-2 font-serif font-bold text-xs uppercase tracking-widest text-[#A51C30] hover:opacity-80 transition-opacity">
-                {roleName} View <ChevronDown className="h-3 w-3" />
-              </button>
-              <div className="absolute right-0 top-full mt-3 w-40 bg-white rounded-xl shadow-2xl border border-gray-100 py-2 hidden group-hover:block animate-in fade-in slide-in-from-top-2">
-                {['Student', 'Teacher', 'Admin'].map(r => (
-                  <button 
-                    key={r}
-                    onClick={() => handleSwitchRole(r)}
-                    className="block w-full text-left px-5 py-2.5 text-xs font-bold uppercase tracking-tighter hover:bg-[#A51C30]/5 text-gray-700 hover:text-[#A51C30]"
-                  >
-                    {r} Portal
-                  </button>
-                ))}
-              </div>
-            </div>
-
             {/* Notification Bell */}
             <NotificationBell />
 

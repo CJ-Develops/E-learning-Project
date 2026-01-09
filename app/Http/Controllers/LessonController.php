@@ -13,7 +13,6 @@ class LessonController extends Controller
     {
         $course = Course::findOrFail($courseId);
 
-        // Ensure the authenticated teacher owns this course
         $isAssignedTeacher = $course->teachers()
             ->where('users.id', auth()->id())
             ->exists();
@@ -45,7 +44,7 @@ class LessonController extends Controller
             abort(403, 'Unauthorized');
         }
 
-        // Determine file_url based on type
+       
         $fileUrl = null;
         if ($validated['type'] === 'file') {
             $path = $request->file('file')->store('lessons', 'public');
@@ -79,7 +78,7 @@ class LessonController extends Controller
             'title' => 'sometimes|required|string|max:255',
             'description' => 'nullable|string',
             'type' => 'sometimes|required|in:link,file',
-            'file' => 'nullable|file|mimes:pdf,doc,docx,jpg,jpeg,png|max:51200', // optional replace
+            'file' => 'nullable|file|mimes:pdf,doc,docx,jpg,jpeg,png|max:51200', 
             'file_url' => 'nullable|url',
         ]);
 
@@ -91,8 +90,8 @@ class LessonController extends Controller
                 $path = $request->file('file')->store('lessons', 'public');
                 $fileUrl = Storage::disk('public')->url($path);
             }
-            // keep existing file if no new upload
-        } else { // youtube
+            
+        } else { 
             if (!empty($validated['file_url'])) {
                 $fileUrl = $validated['file_url'];
             }
