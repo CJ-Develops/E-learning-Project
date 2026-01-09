@@ -1,9 +1,23 @@
-# Project Setup
-    
-    To run this project, follow these steps:
-    
-    1. Extract the zip file.
-    2. Run `npm install` to install dependencies.
-    3. Run `npm run dev` to start the development server.
-    
-    This project was generated through Alpha. For more information, visit [dualite.dev](https://dualite.dev).
+# E-Learning Project
+
+Welcome! 🎉 This is our **E-Learning Platform** project. Follow the instructions below to set it up and run it locally.  
+
+---
+
+## **Project Setup**
+
+### **Frontend (React + Vite)**
+
+1. **Open Terminal and Navigate to Frontend**  
+   Open your terminal (Command Prompt, PowerShell, or VS Code terminal) and navigate to the frontend folder:  
+   ```bash
+   cd LMS-Frontend
+
+2. **Install Frontend Dependencies**  
+   ```bash
+   npm install
+
+3. **Install Frontend Dependencies**  
+   ```bash
+   npm run dev
+
