@@ -102,8 +102,20 @@ class TeacherAssignmentController extends Controller
         $teacherId = $request->user()->id;
 
         $submissions = Submission::with(['student', 'assignment'])
-            ->whereHas('assignment', function ($q) use ($teacherId) {
-                $q->where('created_by', $teacherId);
+            ->where(function ($query) use ($teacherId) {
+                $query->whereHas('assignment', function ($q) use ($teacherId) {
+                    $q->where('created_by', $teacherId);
+                })->orWhere(function ($legacyQuery) use ($teacherId) {
+                    $legacyQuery->where('status', 'graded')
+                        ->whereHas('assignment', function ($q) use ($teacherId) {
+                            $q->whereNull('created_by')
+                                ->whereHas('course', function ($courseQuery) use ($teacherId) {
+                                    $courseQuery->whereHas('teachers', function ($teacherQuery) use ($teacherId) {
+                                        $teacherQuery->where('users.id', $teacherId);
+                                    });
+                                });
+                        });
+                });
             })
             ->latest()
             ->get();

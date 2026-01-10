@@ -7,7 +7,6 @@ import { PlayCircle, CheckCircle, Lock, FileText, ArrowLeft, ChevronRight, Downl
 export default function CoursePlayer() {
   const { courseId } = useParams();
   
-  // Initial Mock Data (Moved to state to allow updates)
   const [course, setCourse] = useState({
     id: courseId,
     title: "Advanced PHP & MySQL",
@@ -35,7 +34,6 @@ export default function CoursePlayer() {
 
   const [activeLessonId, setActiveLessonId] = useState(103);
 
-  // Calculate Progress
   const calculateProgress = () => {
     let totalLessons = 0;
     let completedLessons = 0;
@@ -56,7 +54,6 @@ export default function CoursePlayer() {
       const lesson = module.lessons.find(l => l.id === activeLessonId);
       if (lesson) return { lesson, module };
     }
-    // Fallback
     return { lesson: course.modules[0].lessons[0], module: course.modules[0] };
   };
 
@@ -74,7 +71,6 @@ export default function CoursePlayer() {
 
   // Handle Next Lesson Logic
   const handleNextLesson = () => {
-    // 1. Mark current as complete
     markLessonComplete(activeLessonId);
 
     // 2. Find next lesson

@@ -43,7 +43,6 @@ export default function LandingPage() {
         <div className="container mx-auto px-4 md:px-6 relative z-10">
           <div className="grid lg:grid-cols-2 gap-12 items-center">
             <motion.div initial="hidden" animate="visible" variants={fadeInUp} className="space-y-8">
-              {/* Badge visibility fixed with darker top-gradient stop */}
               <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-black/20 backdrop-blur-md border border-white/20 text-[#F2A900] text-sm font-bold tracking-widest uppercase shadow-sm">
                 <Star className="h-4 w-4 fill-current" /> New Curriculum Available
               </div>
@@ -92,28 +91,19 @@ export default function LandingPage() {
 
           <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={staggerContainer} className="grid md:grid-cols-3 gap-8">
             <CoursePreviewCard
-              title="Web Development Bootcamp"
+              title="Laravel Course"
               instructor="Prof. Snape"
-              image="https://images.unsplash.com/photo-1498050108023-c5249f4df085?auto=format&fit=crop&w=600&q=80"
-              rating="4.9"
-              students="1.2k"
-              price="₱4,999"
+              image="https://laravel.com/images/home/video-preview-static.jpg"
             />
             <CoursePreviewCard
-              title="UI/UX Design Masterclass"
-              instructor="Minerva McGonagall"
-              image="https://www.cmswire.com/-/media/2f53d1640386434d936d8090185617bc.ashx"
-              rating="4.8"
-              students="850"
-              price="₱3,999"
+              title="Database Administration"
+              instructor="Prof. Janna"
+              image="https://potomac.edu/wp-content/uploads/2025/03/what-does-a-database-administrator-do.png"
             />
             <CoursePreviewCard
-              title="Data Science Fundamentals"
-              instructor="Albus Dumbledore"
-              image="https://images.unsplash.com/photo-1551288049-bebda4e38f71?auto=format&fit=crop&w=600&q=80"
-              rating="5.0"
-              students="2.1k"
-              price="₱5,999"
+              title="Art Appreciation"
+              instructor="Prof. Audrey"
+              image="https://cdn.britannica.com/78/43678-050-F4DC8D93/Starry-Night-canvas-Vincent-van-Gogh-New-1889.jpg"
             />
           </motion.div>
         </div>
@@ -168,7 +158,6 @@ export default function LandingPage() {
                 </li>
               </ul>
               <Link to="/auth/signup?role=teacher">
-                {/* Fixed: Button sized down to fit professionally */}
                 <Button size="default" className="bg-[#F2A900] text-[#A51C30] hover:bg-white hover:text-[#A51C30] font-bold px-8 py-3 text-base shadow-lg transition-all transform hover:-translate-y-1">
                   Become a Mentor
                 </Button>
@@ -191,7 +180,6 @@ function FeatureCard({ icon, title, description }) {
       variants={fadeInUp}
       className="flex flex-col items-center text-center p-10 bg-white rounded-3xl border border-gray-100 shadow-sm hover:shadow-xl transition-all duration-300 transform hover:-translate-y-2 group"
     >
-      {/* Icon Wrapper Upgrade */}
       <div className="mb-6 p-5 bg-[#A51C30]/5 rounded-2xl group-hover:bg-[#A51C30] group-hover:text-white transition-all duration-500">
         {React.cloneElement(icon, { className: "h-10 w-10 transition-colors duration-500" })}
       </div>
@@ -208,7 +196,6 @@ function CoursePreviewCard({ title, instructor, image, rating, students, price }
       className="bg-white rounded-2xl overflow-hidden shadow-md border border-gray-100 hover:shadow-2xl transition-all duration-500 group"
     >
       <div className="h-56 w-full overflow-hidden relative">
-        {/* Fixed: Removed the fixed bg-[#A51C30]/20 red tint */}
         <div className="absolute inset-0 bg-black/5 group-hover:bg-transparent transition-all z-10" />
         <img src={image} alt={title} className="object-cover w-full h-full group-hover:scale-110 transition-transform duration-700" />
       </div>

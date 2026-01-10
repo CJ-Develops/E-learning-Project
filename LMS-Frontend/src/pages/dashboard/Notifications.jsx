@@ -5,7 +5,7 @@ import { cn } from '../../lib/utils';
 import { Link } from 'react-router-dom';
 
 export default function Notifications() {
-  // Shared mock data structure with DashboardLayout
+  
   const [notifications, setNotifications] = useState([
     { id: 1, title: "Assignment 'PHP Login' due tomorrow", time: "2 hours ago", type: "urgent", read: false, link: "/dashboard/assignments" },
     { id: 2, title: "New course material available", time: "5 hours ago", type: "info", read: false, link: "/dashboard/courses" },

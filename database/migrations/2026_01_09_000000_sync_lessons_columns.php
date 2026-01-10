@@ -25,16 +25,13 @@ return new class extends Migration
             }
         });
 
-        // Normalize existing enum to the desired options if the column exists
         if (Schema::hasColumn('lessons', 'type')) {
             try {
                 DB::statement("ALTER TABLE lessons MODIFY COLUMN type ENUM('pdf','youtube') NOT NULL");
             } catch (\Throwable $e) {
-                // Ignore if alteration is not possible on current platform/data
             }
         }
 
-        // Ensure file_url is nullable so both uploads and URLs are allowed
         if (Schema::hasColumn('lessons', 'file_url')) {
             Schema::table('lessons', function (Blueprint $table) {
                 $table->string('file_url')->nullable()->change();

@@ -43,7 +43,7 @@ export default function Dashboard() {
 }
 
 // ==========================================
-// 1. ADMIN VIEW (Now with Navigation!)
+// 1. ADMIN VIEW 
 // ==========================================
 function AdminView({ user, onLogout }) {
   // State to switch between 'overview' and 'scholars'
@@ -102,7 +102,7 @@ function AdminView({ user, onLogout }) {
 }
 
 // ==========================================
-// SCHOLARS VIEW (With Delete & Add User)
+// SCHOLARS VIEW 
 // ==========================================
 function ScholarsView() {
     const [users, setUsers] = useState([]);
@@ -114,7 +114,7 @@ function ScholarsView() {
     // MODAL STATE (For the "Add User" Popup)
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [formData, setFormData] = useState({
-        name: '', email: '', password: '', role: '0' // Default to Student
+        name: '', email: '', password: '', role: '0' 
     });
 
     // 1. Fetch Users
@@ -148,10 +148,8 @@ function ScholarsView() {
         if (!window.confirm("Are you sure you want to delete this user?")) return;
 
         try {
-            // Send DELETE command to Laravel
             await api.delete(`/users/${id}`);
             
-            // Remove from screen ONLY if backend succeeds
             setUsers(users.filter(user => user.id !== id));
             
         } catch (error) {
@@ -202,7 +200,6 @@ function ScholarsView() {
         ? users
         : users.filter((user) => normalizeRole(user.role) === activeTab);
 
-    // Helper for Badges
     const getRoleBadge = (role) => {
         const r = String(role);
         if (r === '2') return <span className="px-3 py-1 rounded-full text-xs font-bold bg-purple-100 text-purple-700 border border-purple-200">Admin</span>;
@@ -350,7 +347,7 @@ function ScholarsView() {
 }
 
 // ==========================================
-// 3. ADMIN OVERVIEW (Your existing layout)
+// 3. ADMIN OVERVIEW 
 // ==========================================
 function AdminOverview({ user }) {
     const [dashboardStats, setDashboardStats] = useState({

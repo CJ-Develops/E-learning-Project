@@ -13,26 +13,26 @@ return new class extends Migration
             return;
         }
 
-        // Backfill teacher_id from instructor_id if needed
+        
         if (Schema::hasColumn('courses', 'instructor_id')) {
             DB::statement('UPDATE courses SET teacher_id = instructor_id WHERE teacher_id IS NULL');
         }
 
-        // Make sure teacher_id allows null before dropping column (to avoid constraint issues)
+        
         Schema::table('courses', function (Blueprint $table) {
             if (Schema::hasColumn('courses', 'teacher_id')) {
                 $table->unsignedBigInteger('teacher_id')->nullable()->change();
             }
         });
 
-        // Drop legacy instructor_id column if it exists
+        
         Schema::table('courses', function (Blueprint $table) {
             if (Schema::hasColumn('courses', 'instructor_id')) {
-                // Drop FK constraint first if present
+               
                 try {
                     $table->dropForeign(['instructor_id']);
                 } catch (\Throwable $e) {
-                    // Constraint may not exist; swallow and continue
+                    
                 }
                 $table->dropColumn('instructor_id');
             }

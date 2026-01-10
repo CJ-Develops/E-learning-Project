@@ -17,7 +17,6 @@ export default function Settings() {
     return { firstName: parts[0] || '', lastName: parts.slice(1).join(' ') || '' };
   };
 
-  // Form States
   const [formData, setFormData] = useState({
     firstName: splitName(user.name).firstName,
     lastName: splitName(user.name).lastName,
@@ -67,7 +66,7 @@ export default function Settings() {
   const handleAvatarChange = (e) => {
     const file = e.target.files[0];
     if (file) {
-      // Create a fake local URL for the image
+      
       const imageUrl = URL.createObjectURL(file);
       setUser({ ...user, avatar: imageUrl });
     }

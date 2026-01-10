@@ -13,17 +13,14 @@ return new class extends Migration
             return;
         }
 
-        // Widen to support new values link/file
         try {
             DB::statement("ALTER TABLE lessons MODIFY COLUMN type ENUM('link','file') NOT NULL DEFAULT 'link'");
         } catch (\Throwable $e) {
-            // Fallback: switch to varchar if enum alteration fails
             try {
                 Schema::table('lessons', function (Blueprint $table) {
                     $table->string('type', 20)->default('link')->change();
                 });
             } catch (\Throwable $ignored) {
-                // If both adjustments fail, leave column unchanged to avoid migration crash.
             }
         }
     }

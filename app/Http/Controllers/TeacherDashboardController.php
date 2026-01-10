@@ -34,7 +34,20 @@ class TeacherDashboardController extends Controller
                 'assignment:id,title,course_id',
                 'assignment.course:id,title',
             ])
-            ->whereIn('assignment_id', $teacherAssignmentIds)
+            ->where(function ($query) use ($teacher, $courseIds) {
+                $query->whereHas('assignment', function ($q) use ($teacher) {
+                    $q->where('created_by', $teacher->id);
+                })->orWhere(function ($legacyQuery) use ($courseIds, $teacher) {
+                    $legacyQuery->where('status', 'graded')
+                        ->whereHas('assignment', function ($q) use ($courseIds, $teacher) {
+                            $q->whereNull('created_by')
+                                ->whereIn('course_id', $courseIds)
+                                ->whereHas('course.teachers', function ($teacherQuery) use ($teacher) {
+                                    $teacherQuery->where('users.id', $teacher->id);
+                                });
+                        });
+                });
+            })
             ->where('status', 'graded')
             ->where('grade', '>', 70)
             ->latest('updated_at')

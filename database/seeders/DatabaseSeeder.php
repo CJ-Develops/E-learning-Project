@@ -14,8 +14,8 @@ class DatabaseSeeder extends Seeder
         User::create([
             'name' => 'System Admin',
             'email' => 'admin@lms.com',
-            'password' => Hash::make('password'), // Login password is "password"
-            'role' => 2, // 2 = Admin
+            'password' => Hash::make('password'),
+            'role' => 2, 
         ]);
 
         // 2. Teacher User
@@ -23,7 +23,7 @@ class DatabaseSeeder extends Seeder
             'name' => 'Prof. Snape',
             'email' => 'teacher@lms.com',
             'password' => Hash::make('password'),
-            'role' => 1, // 1 = Teacher
+            'role' => 1, 
         ]);
 
         // 3. Student User
@@ -31,7 +31,7 @@ class DatabaseSeeder extends Seeder
             'name' => 'Harry Potter',
             'email' => 'student@lms.com',
             'password' => Hash::make('password'),
-            'role' => 0, // 0 = Student
+            'role' => 0, 
         ]);
     }
 }

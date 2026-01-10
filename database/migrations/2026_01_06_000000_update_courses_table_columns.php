@@ -13,7 +13,7 @@ return new class extends Migration
             return;
         }
 
-        // Add new columns if they do not exist yet
+        
         Schema::table('courses', function (Blueprint $table) {
             if (!Schema::hasColumn('courses', 'thumbnail_url')) {
                 $table->string('thumbnail_url')->nullable()->after('title');
@@ -28,7 +28,7 @@ return new class extends Migration
             }
         });
 
-        // Migrate data from legacy columns if present
+        
         if (Schema::hasColumn('courses', 'user_id')) {
             DB::statement('UPDATE courses SET teacher_id = user_id WHERE teacher_id IS NULL');
         }
@@ -41,7 +41,7 @@ return new class extends Migration
             DB::statement('UPDATE courses SET teacher_id = instructor_id WHERE teacher_id IS NULL');
         }
 
-        // Drop legacy columns if they exist
+        
         Schema::table('courses', function (Blueprint $table) {
             if (Schema::hasColumn('courses', 'user_id')) {
                 $table->dropConstrainedForeignId('user_id');
